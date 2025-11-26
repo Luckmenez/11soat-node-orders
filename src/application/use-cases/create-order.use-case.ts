@@ -17,6 +17,8 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
 
     //chamada para produtos
 
+    //chamada para pagamento
+
     return null;
   }
 }
