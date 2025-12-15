@@ -1,4 +1,4 @@
-import { Body, Controller, Inject, Post } from '@nestjs/common';
+import { Body, Controller, Inject, Post, Headers } from '@nestjs/common';
 import { CreateOrderDto } from 'src/application/domain/dto/order.db.interface';
 import { CreateOrderUseCasePort } from 'src/application/ports/input/order.use-case.port';
 
@@ -10,7 +10,10 @@ export class OrdersController {
   ) {}
 
   @Post('create-order')
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.createOrderUseCase.execute(createOrderDto);
+  create(
+    @Body() createOrderDto: CreateOrderDto,
+    @Headers('Authorization') token: string,
+  ) {
+    return this.createOrderUseCase.execute(createOrderDto, token);
   }
 }
