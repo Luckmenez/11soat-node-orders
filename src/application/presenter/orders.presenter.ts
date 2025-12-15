@@ -21,7 +21,7 @@ export class OrderPresenter {
           unitPrice: ci.unitPrice ? Number(ci.unitPrice) : undefined,
         })),
       })),
-      client: order.client || null,
+      client: order.clientCpf || null,
     };
   }
 }
