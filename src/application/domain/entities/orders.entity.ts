@@ -1,5 +1,4 @@
 import { OrderStatus } from 'src/application/value-objects/order-status.enum';
-import { ClientEntity } from 'src/application/domain/entities/clients.entitity';
 import { OrderItem } from 'src/application/domain/dto/order.db.interface';
 import { PaymentDtoResponse } from 'src/application/domain/dto/payment.db.interface';
 
@@ -7,7 +6,7 @@ export class OrderEntity {
   constructor(
     public readonly id: number | null,
     public readonly clientId: number | null | undefined,
-    public readonly client: ClientEntity | null,
+    public readonly clientCpf: string | null,
     public readonly status: OrderStatus,
     public readonly amount: number,
     public readonly items: OrderItem[],
@@ -21,8 +20,7 @@ export class OrderEntity {
   ) {}
 
   static create(props: {
-    clientId?: number | null;
-    client?: ClientEntity | null;
+    clientCpf?: string | null;
     status: OrderStatus;
     amount: number;
     items: OrderItem[];
@@ -33,8 +31,8 @@ export class OrderEntity {
   }): OrderEntity {
     return new OrderEntity(
       null,
-      props.clientId ?? null,
-      props.client ?? null,
+      null, // clientId deprecated
+      props.clientCpf ?? null,
       props.status,
       props.amount,
       props.items,
