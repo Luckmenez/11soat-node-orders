@@ -1,0 +1,23 @@
+{
+  "[prisma]": {
+    "editor.formatOnSave": true
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": [
+    "javascript",
+    "typescript"
+  ],
+  "prettier.requireConfig": true,
+  "prisma.showPrismaDataPlatformNotification": false,
+  "prisma.prismaPath": "./node_modules/.bin/prisma"
+}

@@ -21,16 +21,16 @@ export class OrderMapper {
   static toEntity(dbOrder: OrderWithRelations): OrderEntity {
     return new OrderEntity(
       dbOrder.id,
-      null, // clientId - deprecated
+      null,
       dbOrder.clientCpf,
       dbOrder.status as OrderStatus,
       Number(dbOrder.amount),
-      dbOrder.items.map(this.itemToDto),
+      dbOrder.items.map((item) => this.itemToDto(item)),
       dbOrder.transactionId,
       dbOrder.isRandomClient,
       dbOrder.codeClientRandom,
       dbOrder.observation,
-      undefined, // payment - não implementado ainda
+      undefined,
       dbOrder.createdAt,
       dbOrder.updatedAt,
     );
@@ -94,7 +94,9 @@ export class OrderMapper {
       price: Number(dbItem.price),
       unitPrice: Number(dbItem.unitPrice),
       observation: dbItem.observation,
-      customerItems: dbItem.customerItems.map(this.customizationToDto),
+      customerItems: dbItem.customerItems.map((item) =>
+        this.customizationToDto(item),
+      ),
     };
   }
 

@@ -4,18 +4,22 @@ import { OrderEntity } from 'src/application/domain/entities/orders.entity';
 import { CreateOrderUseCasePort } from 'src/application/ports/input/order.use-case.port';
 import { AppError } from 'src/application/domain/errors/app.error';
 import { AuthGatewayPort } from '../ports/output/auth.gateway.port';
+import { OrderRepositoryPort } from '../ports/output/order.repository.port';
+import { OrderStatus } from 'src/application/value-objects/order-status.enum';
 
 @Injectable()
 export class CreateOrderUseCase implements CreateOrderUseCasePort {
   constructor(
     @Inject('AuthGatewayPort')
     private readonly authGateway: AuthGatewayPort,
+    @Inject('OrderRepositoryPort')
+    private readonly orderRepository: OrderRepositoryPort,
   ) {}
   async execute(
-    { items }: CreateOrderDto,
+    orderData: CreateOrderDto,
     token: string,
   ): Promise<OrderEntity | null> {
-    const productIds = items.map((item) => item.productId);
+    const productIds = orderData.items.map((item) => item.productId);
 
     if (!productIds.length) {
       throw AppError.badRequest({
@@ -25,10 +29,22 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
 
     const tokenPayload = await this.authGateway.decodeToken(token);
 
-    console.log(tokenPayload);
+    const orderEntity = OrderEntity.create({
+      clientCpf: tokenPayload?.cpf,
+      status: OrderStatus.PENDING,
+      amount: orderData.amount,
+      items: orderData.items,
+      isRandomClient: tokenPayload?.sub ? true : false,
+      codeClientRandom: orderData.codeClientRandom,
+      observation: orderData.observation,
+    });
 
-    //chamada para pagamento
+    const order = await this.orderRepository.save(orderEntity);
 
-    return null;
+    // mandar para pagamento response
+
+    // return response
+
+    return order;
   }
 }

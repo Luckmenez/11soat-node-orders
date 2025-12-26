@@ -6,7 +6,6 @@ export const validationSchema = Joi.object({
     .default('development'),
   JWT_SECRET: Joi.string().required(),
   PORT: Joi.number().default(3000),
-  PRODUCTS_SERVICE_URL: Joi.string().required(),
   DATABASE_URL: Joi.string().when('NODE_ENV', {
     is: Joi.valid('staging', 'production'),
     then: Joi.required(),
