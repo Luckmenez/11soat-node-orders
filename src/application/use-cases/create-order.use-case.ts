@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from 'src/application/domain/dto/order.db.interface';
 import { OrderEntity } from 'src/application/domain/entities/orders.entity';
-import { CreateOrderUseCasePort } from 'src/application/ports/input/order.use-case.port';
+import { CreateOrderUseCasePort } from 'src/application/ports/input/create-order.port';
 import { AppError } from 'src/application/domain/errors/app.error';
 import { AuthGatewayPort } from '../ports/output/auth.gateway.port';
 import { OrderRepositoryPort } from '../ports/output/order.repository.port';
