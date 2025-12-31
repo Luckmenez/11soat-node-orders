@@ -6,6 +6,7 @@ import configuration from './infrastructure/configuration/configuration';
 import { validationSchema } from 'src/infrastructure/configuration/validation.schema';
 import { AuthGatewayModule } from './infrastructure/gateway/auth/auth.module';
 import { PersistenceModule } from './infrastructure/persistence/persistence.module';
+import { PaymentGatewayModule } from './infrastructure/gateway/payment/payment.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PersistenceModule } from './infrastructure/persistence/persistence.modu
     }),
     PersistenceModule,
     AuthGatewayModule,
+    PaymentGatewayModule,
   ],
   controllers: [OrdersController],
   providers: [

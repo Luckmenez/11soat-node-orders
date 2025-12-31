@@ -1,10 +1,10 @@
 import { OrderStatus } from 'src/application/value-objects/order-status.enum';
 import { OrderItem } from 'src/application/domain/dto/order.db.interface';
-import { PaymentDtoResponse } from 'src/application/domain/dto/payment.db.interface';
+import { PaymentDtoResponse } from '../dto/payment.gateway.interface';
 
 export class OrderEntity {
   constructor(
-    public readonly id: number | null,
+    public readonly id: number,
     public readonly clientId: number | null | undefined,
     public readonly clientCpf: string | null,
     public readonly status: OrderStatus,
@@ -31,7 +31,7 @@ export class OrderEntity {
   }): OrderEntity {
     return new OrderEntity(
       null,
-      null, // clientId deprecated
+      null,
       props.clientCpf ?? null,
       props.status,
       props.amount,

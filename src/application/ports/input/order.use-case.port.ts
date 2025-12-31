@@ -1,6 +1,6 @@
 import { CreateOrderDto } from 'src/application/domain/dto/order.db.interface';
-import { OrderEntity } from 'src/application/domain/entities/orders.entity';
+import { PaymentDtoResponse } from 'src/application/domain/dto/payment.gateway.interface';
 
 export interface CreateOrderUseCasePort {
-  execute(data: CreateOrderDto, token: string): Promise<OrderEntity>;
+  execute(data: CreateOrderDto, token: string): Promise<PaymentDtoResponse>;
 }

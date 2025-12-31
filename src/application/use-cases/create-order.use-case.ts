@@ -6,6 +6,8 @@ import { AppError } from 'src/application/domain/errors/app.error';
 import { AuthGatewayPort } from '../ports/output/auth.gateway.port';
 import { OrderRepositoryPort } from '../ports/output/order.repository.port';
 import { OrderStatus } from 'src/application/value-objects/order-status.enum';
+import { PaymentGatewayPort } from '../ports/output/payment.gateway.port';
+import { PaymentDtoResponse } from '../domain/dto/payment.gateway.interface';
 
 @Injectable()
 export class CreateOrderUseCase implements CreateOrderUseCasePort {
@@ -14,11 +16,13 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
     private readonly authGateway: AuthGatewayPort,
     @Inject('OrderRepositoryPort')
     private readonly orderRepository: OrderRepositoryPort,
+    @Inject('PaymentGatewayPort')
+    private readonly paymentGateway: PaymentGatewayPort,
   ) {}
   async execute(
     orderData: CreateOrderDto,
     token: string,
-  ): Promise<OrderEntity | null> {
+  ): Promise<PaymentDtoResponse> {
     const productIds = orderData.items.map((item) => item.productId);
 
     if (!productIds.length) {
@@ -39,12 +43,25 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
       observation: orderData.observation,
     });
 
+    console.log('Order Entity:', JSON.stringify(orderEntity.items));
+
     const order = await this.orderRepository.save(orderEntity);
 
-    // mandar para pagamento response
+    const payment = await this.paymentGateway.createPayment({
+      orderId: order.id,
+      amount: order.amount,
+      client: order.clientCpf || 'Guest',
+      callbackUrl: `https://yourdomain.com/payments/callback/${order.id}`,
+      items: order.items.map((item) => ({
+        id: item.productId,
+        title: item.title,
+        quantity: item.quantity,
+        unit_price: item.price,
+        description: item.description,
+        type: '',
+      })),
+    });
 
-    // return response
-
-    return order;
+    return payment;
   }
 }
