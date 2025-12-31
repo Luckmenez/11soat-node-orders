@@ -39,6 +39,7 @@ model OrderItem {
   price       Decimal @db.Decimal(10, 2)
   unitPrice   Decimal @db.Decimal(10, 2) @map("unit_price")
   observation String? @db.Text
+  type        String  @db.VarChar(100)
 
   order         Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   customerItems OrderItemCustomization[]
@@ -56,6 +57,7 @@ model OrderItemCustomization {
   price       Decimal @db.Decimal(10, 2)
   unitPrice   Decimal @db.Decimal(10, 2) @map("unit_price")
   observation String? @db.Text
+  type        String  @db.VarChar(100)
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
