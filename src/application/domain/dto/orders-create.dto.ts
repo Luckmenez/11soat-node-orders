@@ -9,6 +9,7 @@ export interface CreateOrderItemCustomerDto {
   price: any;
   unitPrice?: any;
   observation?: string | null;
+  type: string;
 }
 
 export interface CreateOrderItemDto {
@@ -21,6 +22,7 @@ export interface CreateOrderItemDto {
   unitPrice?: any;
   observation?: string | null;
   customerItems?: CreateOrderItemCustomerDto[];
+  type: string;
 }
 
 export interface CreateOrderDto {
