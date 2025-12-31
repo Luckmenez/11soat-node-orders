@@ -60,6 +60,7 @@ export class OrderMapper {
           price: item.price,
           unitPrice: item.unitPrice || item.price,
           observation: item.observation,
+          type: item.type,
           customerItems: item.customerItems
             ? {
                 create: item.customerItems.map((custom) => ({
@@ -70,6 +71,7 @@ export class OrderMapper {
                   price: custom.price,
                   unitPrice: custom.unitPrice || custom.price,
                   observation: custom.observation,
+                  type: custom.type,
                 })),
               }
             : undefined,
@@ -94,6 +96,7 @@ export class OrderMapper {
       price: Number(dbItem.price),
       unitPrice: Number(dbItem.unitPrice),
       observation: dbItem.observation,
+      type: dbItem.type,
       customerItems: dbItem.customerItems.map((item) =>
         this.customizationToDto(item),
       ),
@@ -115,6 +118,7 @@ export class OrderMapper {
       price: Number(dbCustomization.price),
       unitPrice: Number(dbCustomization.unitPrice),
       observation: dbCustomization.observation,
+      type: dbCustomization.type,
     };
   }
 }
