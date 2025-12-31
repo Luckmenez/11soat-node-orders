@@ -4,6 +4,7 @@ import { OrderEntity } from 'src/application/domain/entities/orders.entity';
 import { OrderStatus } from 'src/application/value-objects/order-status.enum';
 import { PrismaService } from '../prisma.service';
 import { OrderMapper } from '../mappers/order.mapper';
+import { PaginatedResult } from 'src/shared/types/paginated-result.type';
 
 @Injectable()
 export class PrismaOrderRepository implements OrderRepositoryPort {
@@ -63,5 +64,32 @@ export class PrismaOrderRepository implements OrderRepositoryPort {
       where: { id },
       data: { status },
     });
+  }
+
+  async getPaginatedOrders(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResult<OrderEntity>> {
+    const [orders, total] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          items: {
+            include: {
+              customerItems: true,
+            },
+          },
+        },
+      }),
+      this.prisma.order.count(),
+    ]);
+
+    return {
+      data: orders.map(OrderMapper.toEntity),
+      total,
+      page,
+      limit,
+    };
   }
 }
