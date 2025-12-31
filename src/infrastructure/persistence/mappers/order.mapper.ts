@@ -25,7 +25,7 @@ export class OrderMapper {
       dbOrder.clientCpf,
       dbOrder.status as OrderStatus,
       Number(dbOrder.amount),
-      dbOrder.items.map((item) => this.itemToDto(item)),
+      dbOrder.items,
       dbOrder.transactionId,
       dbOrder.isRandomClient,
       dbOrder.codeClientRandom,
