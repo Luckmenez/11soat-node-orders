@@ -7,6 +7,7 @@ import { validationSchema } from 'src/infrastructure/configuration/validation.sc
 import { AuthGatewayModule } from './infrastructure/gateway/auth/auth.module';
 import { PersistenceModule } from './infrastructure/persistence/persistence.module';
 import { PaymentGatewayModule } from './infrastructure/gateway/payment/payment.module';
+import { GetOrdersPaginatedUseCase } from './application/use-cases/get-orders-paginated.use-cases';
 
 @Module({
   imports: [
@@ -30,6 +31,10 @@ import { PaymentGatewayModule } from './infrastructure/gateway/payment/payment.m
     {
       provide: 'CreateOrderUseCasePort',
       useClass: CreateOrderUseCase,
+    },
+    {
+      provide: 'GetOrdersPaginatedUseCasePort',
+      useClass: GetOrdersPaginatedUseCase,
     },
   ],
 })
