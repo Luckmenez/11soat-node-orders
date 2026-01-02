@@ -59,11 +59,24 @@ export class PrismaOrderRepository implements OrderRepositoryPort {
     return order ? OrderMapper.toEntity(order) : null;
   }
 
-  async updateStatus(id: number, status: OrderStatus): Promise<void> {
-    await this.prisma.order.update({
+  async updateStatus(
+    id: number,
+    status: OrderStatus,
+    transactionId: string,
+  ): Promise<OrderEntity> {
+    const result = await this.prisma.order.update({
       where: { id },
-      data: { status },
+      data: { status, transactionId },
+      include: {
+        items: {
+          include: {
+            customerItems: true,
+          },
+        },
+      },
     });
+
+    return OrderMapper.toEntity(result);
   }
 
   async getPaginatedOrders(
