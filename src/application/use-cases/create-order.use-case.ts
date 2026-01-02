@@ -23,14 +23,6 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
     orderData: CreateOrderDto,
     token: string,
   ): Promise<PaymentDtoResponse> {
-    const productIds = orderData.items.map((item) => item.productId);
-
-    if (!productIds.length) {
-      throw AppError.badRequest({
-        message: 'At least one product is required in the order',
-      });
-    }
-
     const tokenPayload = await this.authGateway.decodeToken(token);
 
     const orderEntity = OrderEntity.create({
