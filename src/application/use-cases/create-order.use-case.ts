@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from 'src/application/domain/dto/order.db.interface';
 import { OrderEntity } from 'src/application/domain/entities/orders.entity';
 import { CreateOrderUseCasePort } from 'src/application/ports/input/create-order.port';
-import { AppError } from 'src/application/domain/errors/app.error';
 import { AuthGatewayPort } from '../ports/output/auth.gateway.port';
 import { OrderRepositoryPort } from '../ports/output/order.repository.port';
 import { OrderStatus } from 'src/application/value-objects/order-status.enum';
@@ -37,11 +36,9 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
       clientId: tokenPayload.sub,
     });
 
-    console.log('Order Entity:', JSON.stringify(orderEntity.items));
-
     const order = await this.orderRepository.save(orderEntity);
 
-    const payment = await this.paymentGateway.createPayment({
+    const paymentData = await this.paymentGateway.createPayment({
       orderId: order.id,
       amount: order.amount,
       client: order.clientCpf || 'Guest',
@@ -56,6 +53,6 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
       })),
     });
 
-    return payment;
+    return paymentData;
   }
 }
