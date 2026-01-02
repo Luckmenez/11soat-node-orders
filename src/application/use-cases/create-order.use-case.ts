@@ -26,6 +26,7 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
     const tokenPayload = await this.authGateway.decodeToken(token);
 
     const orderEntity = OrderEntity.create({
+      id: null,
       clientCpf: tokenPayload?.cpf,
       status: OrderStatus.PENDING,
       amount: orderData.amount,
@@ -33,6 +34,7 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
       isRandomClient: tokenPayload?.sub ? true : false,
       codeClientRandom: orderData.codeClientRandom,
       observation: orderData.observation,
+      clientId: tokenPayload.sub,
     });
 
     console.log('Order Entity:', JSON.stringify(orderEntity.items));
