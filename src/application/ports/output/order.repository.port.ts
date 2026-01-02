@@ -6,9 +6,14 @@ export interface OrderRepositoryPort {
   save(order: OrderEntity): Promise<OrderEntity>;
   findById(id: number): Promise<OrderEntity | null>;
   findByTransactionId(transactionId: string): Promise<OrderEntity | null>;
-  updateStatus(id: number, status: OrderStatus): Promise<void>;
+  updateStatus(
+    id: number,
+    status: OrderStatus,
+    transactionId: string,
+  ): Promise<OrderEntity | null>;
   getPaginatedOrders(
     page: number,
     limit: number,
   ): Promise<PaginatedResult<OrderEntity>>;
+  getOrderById(id: number): Promise<OrderEntity | null>;
 }

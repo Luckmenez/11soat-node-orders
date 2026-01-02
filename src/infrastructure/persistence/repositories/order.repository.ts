@@ -92,4 +92,19 @@ export class PrismaOrderRepository implements OrderRepositoryPort {
       limit,
     };
   }
+
+  async getOrderById(id: number): Promise<OrderEntity | null> {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            customerItems: true,
+          },
+        },
+      },
+    });
+
+    return order ? OrderMapper.toEntity(order) : null;
+  }
 }
