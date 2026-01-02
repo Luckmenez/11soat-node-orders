@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { ProductValidateResponse } from 'src/application/domain/dto/product-response.dto';
+import { OrderProductDto } from 'src/application/domain/dto/order.product.dto';
 import { ProductGatewayPort } from 'src/application/ports/output/product.gateway.port';
 
 @Injectable()
@@ -16,13 +16,12 @@ export class ProductGateway implements ProductGatewayPort {
       'PRODUCT_GATEWAY_URL',
     );
   }
-  async validateProducts(
-    productIds: string[],
-  ): Promise<ProductValidateResponse> {
+
+  async sendToPreparation(products: OrderProductDto): Promise<void> {
     const { data } = await firstValueFrom(
-      this.httpService.post<ProductValidateResponse>(
+      this.httpService.post<void>(
         `${this.productsServiceUrl}/validate-products`,
-        { productIds },
+        { products },
       ),
     );
 
