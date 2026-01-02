@@ -1,14 +1,5 @@
-import { ProductValidateResponse } from 'src/application/domain/dto/product-response.dto';
+import { OrderProductDto } from 'src/application/domain/dto/order.product.dto';
 
 export interface ProductGatewayPort {
-  validateProducts(productIds: string[]): Promise<ProductValidateResponse>;
+  sendToPreparation(productIds: OrderProductDto): Promise<void>;
 }
-
-// {
-//     "status": "success",
-//     "code": 200,
-//     "message": "OK",
-//     "data": {
-//         "all_available": true | false,
-//     }
-// }

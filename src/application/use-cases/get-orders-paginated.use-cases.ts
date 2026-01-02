@@ -14,8 +14,6 @@ export class GetOrdersPaginatedUseCase implements GetOrdersPaginatedPort {
   execute(
     getOrdersPaginatedDto: GetOrdersPaginatedDto,
   ): Promise<PaginatedResult<OrderEntity>> {
-    console.log(getOrdersPaginatedDto);
-
     const orders = this.orderRepository.getPaginatedOrders(
       getOrdersPaginatedDto.page,
       getOrdersPaginatedDto.limit,

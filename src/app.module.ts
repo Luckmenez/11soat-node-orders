@@ -8,6 +8,8 @@ import { AuthGatewayModule } from './infrastructure/gateway/auth/auth.module';
 import { PersistenceModule } from './infrastructure/persistence/persistence.module';
 import { PaymentGatewayModule } from './infrastructure/gateway/payment/payment.module';
 import { GetOrdersPaginatedUseCase } from './application/use-cases/get-orders-paginated.use-cases';
+import { UpdateOrderPaymentUseCase } from './application/use-cases/update-order-payment.use-case';
+import { ProductGatewayModule } from './infrastructure/gateway/products/products.gateway.module';
 
 @Module({
   imports: [
@@ -25,6 +27,7 @@ import { GetOrdersPaginatedUseCase } from './application/use-cases/get-orders-pa
     PersistenceModule,
     AuthGatewayModule,
     PaymentGatewayModule,
+    ProductGatewayModule,
   ],
   controllers: [OrdersController],
   providers: [
@@ -35,6 +38,10 @@ import { GetOrdersPaginatedUseCase } from './application/use-cases/get-orders-pa
     {
       provide: 'GetOrdersPaginatedUseCasePort',
       useClass: GetOrdersPaginatedUseCase,
+    },
+    {
+      provide: 'UpdateOrderPaymentUseCasePort',
+      useClass: UpdateOrderPaymentUseCase,
     },
   ],
 })
