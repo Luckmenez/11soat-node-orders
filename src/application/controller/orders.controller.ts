@@ -13,10 +13,7 @@ import { CreateOrderUseCasePort } from 'src/application/ports/input/create-order
 import { GetOrdersPaginatedDto } from '../domain/dto/orders-get-paginated.dto';
 import { GetOrdersPaginatedPort } from '../ports/input/get-orders-paginated.port';
 import { UpdateOrderPaymentPort } from '../ports/input/patch-order-payment.port';
-import {
-  UpdateOrderParamPaymentDto,
-  UpdateOrderPaymentDto,
-} from '../domain/dto/order.update-payment.dto';
+import { UpdateOrderPaymentDto } from '../domain/dto/order.update-payment.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -46,13 +43,7 @@ export class OrdersController {
   }
 
   @Patch('update-order-payment/:orderId')
-  updateOrderPayment(
-    @Param() updateOrderPayment: UpdateOrderParamPaymentDto,
-    @Body() updateOrderPaymentBody: UpdateOrderPaymentDto,
-  ) {
-    return this.updateOrderPaymentUseCase.execute(
-      updateOrderPayment,
-      updateOrderPaymentBody,
-    );
+  updateOrderPayment(@Body() updateOrderPaymentBody: UpdateOrderPaymentDto) {
+    return this.updateOrderPaymentUseCase.execute(updateOrderPaymentBody);
   }
 }
