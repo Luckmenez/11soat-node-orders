@@ -105,4 +105,9 @@
         "statements": 90
       }
     },
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
 }
