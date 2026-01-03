@@ -110,4 +110,8 @@
       "lcov",
       "html"
     ],
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    }
+  }
 }
