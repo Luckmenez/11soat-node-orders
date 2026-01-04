@@ -3,14 +3,25 @@ import { PrismaService } from '../../prisma.service';
 import { OrderEntity } from '../../../../application/domain/entities/orders.entity';
 import { OrderStatus } from '../../../../application/value-objects/order-status.enum';
 import { OrderFactory } from '../../../../../test/utils/factories/order.factory';
+import { ConfigService } from '@nestjs/config';
 
 describe('OrderRepository Integration Tests', () => {
   let repository: PrismaOrderRepository;
   let prisma: PrismaService;
 
   beforeAll(async () => {
+    // Criar ConfigService mock para testes
+    const configService = {
+      get: jest.fn((key: string) => {
+        if (key === 'database.url') {
+          return process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/test';
+        }
+        return null;
+      }),
+    } as any;
+
     // Usar PrismaService real conectado ao banco de testes
-    prisma = new PrismaService();
+    prisma = new PrismaService(configService);
     await prisma.$connect();
     repository = new PrismaOrderRepository(prisma);
   });
@@ -247,7 +258,7 @@ describe('OrderRepository Integration Tests', () => {
       // Act
       const updated = await repository.updateStatus(
         created.id!,
-        OrderStatus.PREPARING,
+        OrderStatus.IN_PREPARATION,
         'TXN-456',
       );
 
@@ -396,23 +407,24 @@ describe('OrderRepository Integration Tests', () => {
       expect(paid.status).toBe(OrderStatus.PAID);
 
       // 4. Find by transaction ID
-      const foundByTxn = await repository.findByTransactionId('TXN-LIFECYCLE-123');
+      const foundByTxn =
+        await repository.findByTransactionId('TXN-LIFECYCLE-123');
       expect(foundByTxn).toBeDefined();
       expect(foundByTxn!.id).toBe(created.id);
 
-      // 5. Update to PREPARING
+      // 5. Update to IN_PREPARATION
       const preparing = await repository.updateStatus(
         created.id!,
-        OrderStatus.PREPARING,
+        OrderStatus.IN_PREPARATION,
         'TXN-LIFECYCLE-123',
       );
-      expect(preparing.status).toBe(OrderStatus.PREPARING);
+      expect(preparing.status).toBe(OrderStatus.IN_PREPARATION);
 
       // 6. Verify in paginated list
       const paginated = await repository.getPaginatedOrders(1, 10);
       const orderInList = paginated.data.find((o) => o.id === created.id);
       expect(orderInList).toBeDefined();
-      expect(orderInList!.status).toBe(OrderStatus.PREPARING);
+      expect(orderInList!.status).toBe(OrderStatus.IN_PREPARATION);
     });
   });
 });
