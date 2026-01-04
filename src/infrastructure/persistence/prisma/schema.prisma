@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id                Int         @id @default(autoincrement())
+  clientCpf         String?     @map("client_cpf")
+  status            OrderStatus
+  amount            Decimal     @db.Decimal(10, 2)
+  transactionId     String?     @map("transaction_id")
+  isRandomClient    Boolean     @default(false) @map("is_random_client")
+  codeClientRandom  Int?        @map("code_client_random")
+  observation       String?     @db.Text
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  items  OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id          Int     @id @default(autoincrement())
+  orderId     Int     @map("order_id")
+  productId   Int     @map("product_id")
+  title       String
+  description String? @db.Text
+  photo       String?
+  quantity    Int
+  price       Decimal @db.Decimal(10, 2)
+  unitPrice   Decimal @db.Decimal(10, 2) @map("unit_price")
+  observation String? @db.Text
+  type        String  @db.VarChar(100)
+
+  order         Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customerItems OrderItemCustomization[]
+
+  @@map("order_items")
+}
+
+model OrderItemCustomization {
+  id          Int     @id @default(autoincrement())
+  orderItemId Int     @map("order_item_id")
+  title       String
+  description String? @db.Text
+  photo       String?
+  quantity    Int
+  price       Decimal @db.Decimal(10, 2)
+  unitPrice   Decimal @db.Decimal(10, 2) @map("unit_price")
+  observation String? @db.Text
+  type        String  @db.VarChar(100)
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@map("order_item_customizations")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELED
+  FAILED
+  IN_PREPARATION
+  READY_TO_DELIVER
+  DONE
+}

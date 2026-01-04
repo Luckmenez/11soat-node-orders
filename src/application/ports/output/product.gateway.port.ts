@@ -1,6 +1,5 @@
-import { ProductResponseDto } from 'src/application/domain/dto/product-response.dto';
+import { OrderProductDto } from 'src/application/domain/dto/order.product.dto';
 
 export interface ProductGatewayPort {
-  findByIds(productIds: number[]): Promise<ProductResponseDto[]>;
-  findById(productId: number): Promise<ProductResponseDto | null>;
+  sendToPreparation(productIds: OrderProductDto): Promise<void>;
 }
