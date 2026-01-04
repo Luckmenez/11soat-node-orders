@@ -3,7 +3,6 @@ import { UpdateOrderPaymentPort } from '../ports/input/patch-order-payment.port'
 import { UpdateOrderPaymentDto } from '../domain/dto/order.update-payment.dto';
 import { OrderRepositoryPort } from '../ports/output/order.repository.port';
 import { AppError } from '../domain/errors/app.error';
-import { toPositiveNumber } from '../utils/type-conversion.util';
 import { ProductGatewayPort } from '../ports/output/product.gateway.port';
 
 @Injectable()
@@ -19,19 +18,17 @@ export class UpdateOrderPaymentUseCase implements UpdateOrderPaymentPort {
     transactionId,
     orderId,
   }: UpdateOrderPaymentDto): Promise<void> {
-    const orderIdNumber = toPositiveNumber(orderId, 'orderId');
-
-    const response = await this.orderRepository.getOrderById(orderIdNumber);
+    const response = await this.orderRepository.getOrderById(orderId);
 
     if (!response) {
       throw AppError.notFound({
         message: 'Order not found',
-        details: { orderId: orderIdNumber },
+        details: { orderId: orderId },
       });
     }
 
     const updatedOrder = await this.orderRepository.updateStatus(
-      orderIdNumber,
+      orderId,
       status,
       transactionId,
     );

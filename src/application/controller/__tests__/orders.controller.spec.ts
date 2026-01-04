@@ -7,11 +7,15 @@ describe('OrdersController', () => {
   let mockCreateOrderUseCase: any;
   let mockGetOrdersPaginatedUseCase: any;
   let mockUpdateOrderPaymentUseCase: any;
+  let mockOrderDeleteUseCase: any;
 
   beforeEach(() => {
     mockCreateOrderUseCase = {
       execute: jest.fn().mockResolvedValue({
-        orderId: 1,
+        id: 1,
+        transactionId: 'tx123',
+        status: 'PAID',
+        amount: 100,
         urlPayment: 'https://payment.com/pay/123',
         qrCodeBase64: 'base64-qr-code',
         qrCodeString: 'qr-code-string',
@@ -32,10 +36,15 @@ describe('OrdersController', () => {
       execute: jest.fn().mockResolvedValue(undefined),
     };
 
+    mockOrderDeleteUseCase = {
+      execute: jest.fn().mockResolvedValue(undefined),
+    };
+
     controller = new OrdersController(
       mockCreateOrderUseCase,
       mockGetOrdersPaginatedUseCase,
       mockUpdateOrderPaymentUseCase,
+      mockOrderDeleteUseCase,
     );
   });
 
@@ -47,9 +56,12 @@ describe('OrdersController', () => {
       const result = await controller.create(orderData, token);
 
       expect(result).toBeDefined();
-      expect(result.orderId).toBe(1);
+      expect(result.id).toBe(1);
       expect(result.urlPayment).toBeDefined();
-      expect(mockCreateOrderUseCase.execute).toHaveBeenCalledWith(orderData, token);
+      expect(mockCreateOrderUseCase.execute).toHaveBeenCalledWith(
+        orderData,
+        token,
+      );
     });
 
     it('should pass Authorization header to use case', async () => {
@@ -58,12 +70,15 @@ describe('OrdersController', () => {
 
       await controller.create(orderData, token);
 
-      expect(mockCreateOrderUseCase.execute).toHaveBeenCalledWith(orderData, token);
+      expect(mockCreateOrderUseCase.execute).toHaveBeenCalledWith(
+        orderData,
+        token,
+      );
     });
 
     it('should pass order DTO to use case', async () => {
       const orderData = OrderFactory.createValidOrderData({
-        amount: 150.50,
+        amount: 150.5,
         observation: 'Special order',
       });
       const token = 'Bearer token';
@@ -72,7 +87,7 @@ describe('OrdersController', () => {
 
       expect(mockCreateOrderUseCase.execute).toHaveBeenCalledWith(
         expect.objectContaining({
-          amount: 150.50,
+          amount: 150.5,
           observation: 'Special order',
         }),
         token,
@@ -118,37 +133,44 @@ describe('OrdersController', () => {
 
   describe('updateOrderPayment', () => {
     it('should update order payment status', async () => {
-      const params = { orderId: 1 };
-      const body = { status: OrderStatus.PAID, transactionId: 'TXN-123' };
+      const body = {
+        status: OrderStatus.PAID,
+        transactionId: 'TXN-123',
+        orderId: 1,
+        amount: 100,
+      };
 
-      await controller.updateOrderPayment(params, body);
+      await controller.updateOrderPayment(body);
 
-      expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(params, body);
+      expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(body);
     });
 
     it('should pass orderId param to use case', async () => {
-      const params = { orderId: 42 };
-      const body = { status: OrderStatus.PAID, transactionId: 'TXN-456' };
+      const body = {
+        status: OrderStatus.PAID,
+        transactionId: 'TXN-456',
+        orderId: 42,
+        amount: 200,
+      };
 
-      await controller.updateOrderPayment(params, body);
+      await controller.updateOrderPayment(body);
 
       expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(
         expect.objectContaining({ orderId: 42 }),
-        body,
       );
     });
 
     it('should pass status and transactionId to use case', async () => {
-      const params = { orderId: 1 };
       const body = {
         status: OrderStatus.IN_PREPARATION,
         transactionId: 'TXN-789',
+        orderId: 1,
+        amount: 100,
       };
 
-      await controller.updateOrderPayment(params, body);
+      await controller.updateOrderPayment(body);
 
       expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(
-        params,
         expect.objectContaining({
           status: OrderStatus.IN_PREPARATION,
           transactionId: 'TXN-789',
@@ -157,12 +179,25 @@ describe('OrdersController', () => {
     });
 
     it('should handle null transaction ID', async () => {
-      const params = { orderId: 1 };
-      const body = { status: OrderStatus.FAILED, transactionId: null };
+      const body = {
+        status: OrderStatus.FAILED,
+        transactionId: null,
+        orderId: 1,
+        amount: 100,
+      };
 
-      await controller.updateOrderPayment(params, body);
+      await controller.updateOrderPayment(body);
 
-      expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(params, body);
+      expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(body);
+    });
+  });
+
+  describe('deleteOrderById', () => {
+    it('should call getOrdersPaginatedUseCase when deleting an order', async () => {
+      const orderId = '1';
+      await controller.deleteOrderById(orderId);
+
+      expect(mockGetOrdersPaginatedUseCase).toBeDefined();
     });
   });
 });

@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { PaymentGatewayService } from './payment.gateway.service';
 
 @Module({
-  imports: [],
+  imports: [HttpModule],
   providers: [
     {
       provide: 'PaymentGatewayPort',

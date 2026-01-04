@@ -7,7 +7,10 @@ export interface CreatePaymentDto {
 }
 
 export interface PaymentDtoResponse {
-  orderId: number;
+  id: number;
+  transactionId: string;
+  status: string;
+  amount: number;
   qrCodeBase64?: string;
   qrCodeString?: string;
   urlPayment: string;
@@ -27,10 +30,17 @@ export interface PaymentDataItem {
   warranty: boolean;
 }
 
-export interface PaymentGatewayRequest {
+export interface Client {
+  id: number;
+  name: string;
+  email: string;
+  document: string;
+}
+
+export interface CreatePaymentGatewayRequest {
   amount: number;
   description?: string;
-  client?: string;
+  client?: Client;
   orderId: number;
   callbackUrl?: string;
   items: {

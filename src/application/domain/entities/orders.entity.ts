@@ -1,6 +1,6 @@
 import { OrderStatus } from 'src/application/value-objects/order-status.enum';
 import { OrderItem } from 'src/application/domain/dto/order.db.interface';
-import { PaymentDtoResponse } from '../dto/payment.gateway.interface';
+import { PaymentDtoResponse } from '../dto/payment-create.gateway.interface';
 import { OrderProductDto, OrderProductItemDto } from '../dto/order.product.dto';
 import { AppError } from '../errors/app.error';
 
@@ -115,6 +115,27 @@ export class OrderEntity {
         details: { status },
       });
     }
+  }
+
+  static addTransactionId(
+    order: OrderEntity,
+    transactionId: string,
+  ): OrderEntity {
+    return new OrderEntity(
+      order.id,
+      order.clientId,
+      order.clientCpf,
+      order.status,
+      order.amount,
+      order.items,
+      transactionId,
+      order.isRandomClient,
+      order.codeClientRandom,
+      order.observation,
+      order.payment,
+      order.createdAt,
+      order.updatedAt,
+    );
   }
 
   static create(props: {

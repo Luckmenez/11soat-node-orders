@@ -17,7 +17,6 @@ describe('AuthGateway', () => {
     it('should decode token successfully', async () => {
       const token = 'valid-token';
       const mockPayload: JwtPayload = {
-        id: '123',
         sub: '123',
         cpf: '12345678900',
         user_type: 'cliente',
@@ -37,7 +36,6 @@ describe('AuthGateway', () => {
     it('should return payload with all required fields', async () => {
       const token = 'another-valid-token';
       const mockPayload: JwtPayload = {
-        id: '456',
         sub: '456',
         cpf: '98765432100',
         user_type: 'funcionario',
@@ -50,17 +48,16 @@ describe('AuthGateway', () => {
 
       const result = await gateway.decodeToken(token);
 
-      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('sub');
       expect(result).toHaveProperty('cpf');
       expect(result).toHaveProperty('user_type');
-      expect(result.id).toBe('456');
+      expect(result.sub).toBe('456');
       expect(result.cpf).toBe('98765432100');
     });
 
     it('should pass through the token to jwtService', async () => {
       const token = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
       const mockPayload: JwtPayload = {
-        id: '789',
         sub: '789',
         cpf: '11122233344',
         user_type: 'cliente',
@@ -91,7 +88,6 @@ describe('AuthGateway', () => {
     it('should handle different user types', async () => {
       const token = 'token-for-admin';
       const funcionarioPayload: JwtPayload = {
-        id: '999',
         sub: '999',
         cpf: '55566677788',
         user_type: 'funcionario',

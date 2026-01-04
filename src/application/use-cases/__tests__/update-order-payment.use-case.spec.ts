@@ -28,10 +28,12 @@ describe('UpdateOrderPaymentUseCase', () => {
 
   describe('execute', () => {
     it('should update order payment status successfully', async () => {
-      await useCase.execute(
-        { orderId: 1 },
-        { status: OrderStatus.PAID, transactionId: 'TXN-123' },
-      );
+      await useCase.execute({
+        orderId: 1,
+        status: OrderStatus.PAID,
+        transactionId: 'TXN-123',
+        amount: 100,
+      });
 
       expect(mockOrderRepository.getOrderById).toHaveBeenCalledWith(1);
       expect(mockOrderRepository.updateStatus).toHaveBeenCalledWith(
@@ -42,10 +44,12 @@ describe('UpdateOrderPaymentUseCase', () => {
     });
 
     it('should send order to product gateway for preparation', async () => {
-      await useCase.execute(
-        { orderId: 1 },
-        { status: OrderStatus.PAID, transactionId: 'TXN-123' },
-      );
+      await useCase.execute({
+        orderId: 1,
+        status: OrderStatus.PAID,
+        transactionId: 'TXN-123',
+        amount: 100,
+      });
 
       expect(mockProductGateway.sendToPreparation).toHaveBeenCalledTimes(1);
     });
@@ -58,10 +62,12 @@ describe('UpdateOrderPaymentUseCase', () => {
       );
 
       await expect(
-        useCase.execute(
-          { orderId: 999 },
-          { status: OrderStatus.PAID, transactionId: 'TXN-123' },
-        ),
+        useCase.execute({
+          orderId: 999,
+          status: OrderStatus.PAID,
+          transactionId: 'TXN-123',
+          amount: 100,
+        }),
       ).rejects.toThrow('Order not found');
 
       expect(mockOrderRepository.updateStatus).not.toHaveBeenCalled();
@@ -76,10 +82,12 @@ describe('UpdateOrderPaymentUseCase', () => {
       );
 
       await expect(
-        useCase.execute(
-          { orderId: 1 },
-          { status: OrderStatus.PAID, transactionId: 'TXN-123' },
-        ),
+        useCase.execute({
+          orderId: 1,
+          status: OrderStatus.PAID,
+          transactionId: 'TXN-123',
+          amount: 100,
+        }),
       ).rejects.toThrow('Database error');
     });
 
@@ -91,10 +99,12 @@ describe('UpdateOrderPaymentUseCase', () => {
       );
 
       await expect(
-        useCase.execute(
-          { orderId: 1 },
-          { status: OrderStatus.PAID, transactionId: 'TXN-123' },
-        ),
+        useCase.execute({
+          orderId: 1,
+          status: OrderStatus.PAID,
+          transactionId: 'TXN-123',
+          amount: 100,
+        }),
       ).rejects.toThrow('Product gateway unavailable');
     });
   });

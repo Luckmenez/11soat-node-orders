@@ -18,13 +18,12 @@ export class ProductGateway implements ProductGatewayPort {
   }
 
   async sendToPreparation(products: OrderProductDto): Promise<void> {
-    const { data } = await firstValueFrom(
+    console.log('Product payload to send:', products);
+    await firstValueFrom(
       this.httpService.post<void>(
         `${this.productsServiceUrl}/validate-products`,
         { products },
       ),
     );
-
-    return data;
   }
 }
