@@ -19,5 +19,14 @@
   ],
   "prettier.requireConfig": true,
   "prisma.showPrismaDataPlatformNotification": false,
-  "prisma.prismaPath": "./node_modules/.bin/prisma"
+  "prisma.prismaPath": "./node_modules/.bin/prisma",
+  "sonarlint.connectedMode.project": {
+    "connectionId": "luckmenez",
+    "projectKey": "Luckmenez_11soat-node-orders"
+  },
+  "sonarlint.pathToNodeExecutable": "/Users/lucasmenezes/.nvm/versions/node/v20.18.1/bin/node",
+  "sonarlint.disableTelemetry": false,
+  "terminal.integrated.env.osx": {
+    "PATH": "/Users/lucasmenezes/.nvm/versions/node/v20.18.1/bin:${env:PATH}"
+  }
 }
