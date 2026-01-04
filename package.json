@@ -33,6 +33,7 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^7.4.2",
     "@prisma/client": "^6.19.1",
     "@vineco77/auth-lib": "npm:@vineco77/auth-lib@^1.0.0",
     "axios": "^1.13.2",
@@ -42,7 +43,8 @@
     "joi": "^18.0.1",
     "prisma": "^6.19.1",
     "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.5.0",
