@@ -41,7 +41,7 @@ describe('CreateOrderUseCase', () => {
       const result = await useCase.execute(orderData, token);
 
       expect(result).toBeDefined();
-      expect(result.orderId).toBe(1);
+      expect(result.id).toBe(1);
       expect(result.urlPayment).toBeDefined();
       expect(result.qrCodeBase64).toBeDefined();
       expect(result.qrCodeString).toBeDefined();
@@ -99,7 +99,12 @@ describe('CreateOrderUseCase', () => {
         expect.objectContaining({
           orderId: 1,
           amount: expect.any(Number),
-          client: expect.any(String),
+          client: expect.objectContaining({
+            document: expect.any(String),
+            name: expect.any(String),
+            email: expect.any(String),
+            id: expect.any(Number),
+          }),
           callbackUrl: expect.stringContaining('/payments/callback/'),
           items: expect.any(Array),
         }),
@@ -204,7 +209,8 @@ describe('CreateOrderUseCase', () => {
     });
 
     it('should throw error when order entity validation fails', async () => {
-      const invalidOrderData = OrderFactory.createOrderWithInvalidData('emptyItems');
+      const invalidOrderData =
+        OrderFactory.createOrderWithInvalidData('emptyItems');
       const token = 'valid-token';
 
       await expect(useCase.execute(invalidOrderData, token)).rejects.toThrow(
@@ -242,7 +248,9 @@ describe('CreateOrderUseCase', () => {
 
       expect(mockPaymentGateway.createPayment).toHaveBeenCalledWith(
         expect.objectContaining({
-          client: expect.any(String),
+          client: expect.objectContaining({
+            document: '12345678900',
+          }),
         }),
       );
     });

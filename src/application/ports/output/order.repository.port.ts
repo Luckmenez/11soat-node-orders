@@ -16,4 +16,5 @@ export interface OrderRepositoryPort {
     limit: number,
   ): Promise<PaginatedResult<OrderEntity>>;
   getOrderById(id: number): Promise<OrderEntity | null>;
+  delete(id: number): Promise<OrderEntity | null>;
 }

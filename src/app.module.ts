@@ -10,6 +10,7 @@ import { PaymentGatewayModule } from './infrastructure/gateway/payment/payment.m
 import { GetOrdersPaginatedUseCase } from './application/use-cases/get-orders-paginated.use-cases';
 import { UpdateOrderPaymentUseCase } from './application/use-cases/update-order-payment.use-case';
 import { ProductGatewayModule } from './infrastructure/gateway/products/products.gateway.module';
+import { DeleteOrderUseCase } from './application/use-cases/delete-order.use-case';
 
 @Module({
   imports: [
@@ -42,6 +43,10 @@ import { ProductGatewayModule } from './infrastructure/gateway/products/products
     {
       provide: 'UpdateOrderPaymentUseCasePort',
       useClass: UpdateOrderPaymentUseCase,
+    },
+    {
+      provide: 'DeleteOrderUseCasePort',
+      useClass: DeleteOrderUseCase,
     },
   ],
 })

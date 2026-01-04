@@ -6,7 +6,7 @@ import { AuthGatewayPort } from '../ports/output/auth.gateway.port';
 import { OrderRepositoryPort } from '../ports/output/order.repository.port';
 import { OrderStatus } from 'src/application/value-objects/order-status.enum';
 import { PaymentGatewayPort } from '../ports/output/payment.gateway.port';
-import { PaymentDtoResponse } from '../domain/dto/payment.gateway.interface';
+import { PaymentDtoResponse } from '../domain/dto/payment-create.gateway.interface';
 
 @Injectable()
 export class CreateOrderUseCase implements CreateOrderUseCasePort {
@@ -24,6 +24,8 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
   ): Promise<PaymentDtoResponse> {
     const tokenPayload = await this.authGateway.decodeToken(token);
 
+    console.log('Token payload:', tokenPayload);
+
     const orderEntity = OrderEntity.create({
       id: null,
       clientCpf: tokenPayload?.cpf,
@@ -36,22 +38,29 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
       clientId: tokenPayload.sub,
     });
 
-    const order = await this.orderRepository.save(orderEntity);
+    const createdOrder = await this.orderRepository.save(orderEntity);
 
     const paymentData = await this.paymentGateway.createPayment({
-      orderId: order.id,
-      amount: order.amount,
-      client: order.clientCpf || 'Guest',
-      callbackUrl: `https://yourdomain.com/payments/callback/${order.id}`,
-      items: order.items.map((item) => ({
+      orderId: createdOrder.id,
+      amount: createdOrder.amount,
+      client: {
+        id: Number(tokenPayload.sub),
+        name: tokenPayload.name,
+        email: 'mock_enquanto_o_vinny_arruma@gmail.com',
+        document: tokenPayload.cpf,
+      },
+      callbackUrl: `https://yourdomain.com/payments/callback/${createdOrder.id}`,
+      items: createdOrder.items.map((item) => ({
         id: item.productId,
         title: item.title,
         quantity: item.quantity,
         unit_price: item.price,
         description: item.description,
-        type: '',
+        type: item.type,
       })),
     });
+
+    console.log('Payment data received:', paymentData);
 
     return paymentData;
   }

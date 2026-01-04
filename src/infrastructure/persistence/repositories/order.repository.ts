@@ -120,4 +120,21 @@ export class PrismaOrderRepository implements OrderRepositoryPort {
 
     return order ? OrderMapper.toEntity(order) : null;
   }
+
+  async delete(id: number): Promise<any> {
+    console.log('Deleting order with ID:', id);
+    // const result = await this.prisma.order.update({
+    //   where: { id },
+    //   data: { status: OrderStatus.CANCELED },
+    //   include: {
+    //     items: {
+    //       include: {
+    //         customerItems: true,
+    //       },
+    //     },
+    //   },
+    // });
+
+    // return OrderMapper.toEntity(result);
+  }
 }

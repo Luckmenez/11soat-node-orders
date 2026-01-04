@@ -8,7 +8,6 @@ export class MockAuthGateway implements AuthGatewayPort {
     }
 
     return {
-      id: '123',
       sub: '123',
       cpf: '12345678900',
       user_type: 'cliente',
@@ -20,7 +19,6 @@ export class MockAuthGateway implements AuthGatewayPort {
 export const createMockAuthGateway = () => {
   return {
     decodeToken: jest.fn().mockResolvedValue({
-      id: '123',
       sub: '123',
       cpf: '12345678900',
       user_type: 'cliente',
@@ -38,7 +36,6 @@ export const createMockAuthGatewayWithError = () => {
 export const createMockAuthGatewayWithNoCpf = () => {
   return {
     decodeToken: jest.fn().mockResolvedValue({
-      id: '123',
       sub: '123',
       cpf: null,
       user_type: 'cliente',

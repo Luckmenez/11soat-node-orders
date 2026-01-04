@@ -1,10 +1,12 @@
 import {
   PaymentDtoResponse,
-  PaymentGatewayRequest,
-} from 'src/application/domain/dto/payment.gateway.interface';
+  CreatePaymentGatewayRequest,
+} from 'src/application/domain/dto/payment-create.gateway.interface';
+import { PaymentDeleteGatewayRequest } from 'src/application/domain/dto/payment-delete.gateway.interface';
 
 export interface PaymentGatewayPort {
   createPayment(
-    paymentData: PaymentGatewayRequest,
+    paymentData: CreatePaymentGatewayRequest,
   ): Promise<PaymentDtoResponse>;
+  cancelPayment(transactionId: PaymentDeleteGatewayRequest): Promise<void>;
 }

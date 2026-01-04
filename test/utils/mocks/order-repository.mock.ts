@@ -18,6 +18,7 @@ export const createMockOrderRepository = (): jest.Mocked<OrderRepositoryPort> =>
       limit: 10,
     } as PaginatedResult<OrderEntity>),
     getOrderById: jest.fn().mockResolvedValue(mockOrder),
+    delete: jest.fn().mockResolvedValue(mockOrder),
   };
 };
 
@@ -29,6 +30,7 @@ export const createMockOrderRepositoryWithError = (): jest.Mocked<OrderRepositor
     updateStatus: jest.fn().mockRejectedValue(new Error('Database error')),
     getPaginatedOrders: jest.fn().mockRejectedValue(new Error('Database error')),
     getOrderById: jest.fn().mockRejectedValue(new Error('Database error')),
+    delete: jest.fn().mockRejectedValue(new Error('Database error')),
   };
 };
 
@@ -45,5 +47,6 @@ export const createMockOrderRepositoryWithNotFound = (): jest.Mocked<OrderReposi
       limit: 10,
     } as PaginatedResult<OrderEntity>),
     getOrderById: jest.fn().mockResolvedValue(null),
+    delete: jest.fn().mockResolvedValue(null),
   };
 };
