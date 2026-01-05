@@ -36,7 +36,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.4.2",
     "@prisma/client": "^6.19.1",
-    "@vineco77/auth-lib": "npm:@vineco77/auth-lib@^1.0.0",
+    "@vineco77/auth-lib": "npm:@vineco77/auth-lib@^1.0.2",
     "axios": "^1.13.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
