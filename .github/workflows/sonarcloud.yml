@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - main
-      - feat#add-swagger
-      - feat#adding-ci-cd
+      - development
   pull_request:
     types: [opened, synchronize, reopened]
 
