@@ -2,6 +2,7 @@ import { PaymentGatewayService } from '../payment.gateway.service';
 import { CreatePaymentGatewayRequest } from 'src/application/domain/dto/payment-create.gateway.interface';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { of } from 'rxjs';
 
 describe('PaymentGatewayService', () => {
   let service: PaymentGatewayService;
@@ -13,9 +14,22 @@ describe('PaymentGatewayService', () => {
       get: jest.fn().mockReturnValue('http://payment-service:3000'),
     } as any;
 
+    const mockPaymentResponse = {
+      data: {
+        id: 1,
+        urlPayment: 'https://payment.example.com/pay/123',
+        qrCodeBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAUA',
+        transactionId: 'txn_123456',
+      },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as any,
+    };
+
     mockHttpService = {
-      post: jest.fn(),
-      delete: jest.fn(),
+      post: jest.fn().mockReturnValue(of(mockPaymentResponse)),
+      delete: jest.fn().mockReturnValue(of({ data: null, status: 204, statusText: 'No Content', headers: {}, config: {} as any })),
     } as any;
 
     service = new PaymentGatewayService(mockConfigService, mockHttpService);
