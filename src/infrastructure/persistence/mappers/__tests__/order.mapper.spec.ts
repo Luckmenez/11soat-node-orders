@@ -183,3 +183,146 @@ describe('OrderMapper', () => {
     });
   });
 });
+
+  describe('toCreateInput', () => {
+    it('should convert entity to create input with customer items', () => {
+      const entity = OrderFactory.createOrderEntity();
+      entity.items = [
+        {
+          productId: 1,
+          title: 'Product 1',
+          description: 'Description',
+          photo: 'photo.jpg',
+          quantity: 2,
+          price: 50.25,
+          unitPrice: 50.25,
+          observation: 'No onions',
+          type: 'MAIN',
+          customerItems: [
+            {
+              itemId: 1,
+              title: 'Extra cheese',
+              description: 'Cheese',
+              photo: 'cheese.jpg',
+              quantity: 1,
+              price: 5.0,
+              unitPrice: 5.0,
+              observation: null,
+              type: 'ADDON',
+            },
+          ],
+        },
+      ];
+
+      const input = OrderMapper.toCreateInput(entity);
+
+      expect(input.clientCpf).toBe(entity.clientCpf);
+      expect(input.status).toBe(entity.status);
+      expect(input.amount).toBe(entity.amount);
+      expect(input.items.create).toHaveLength(1);
+      expect(input.items.create[0].customerItems.create).toHaveLength(1);
+      expect(input.items.create[0].customerItems.create[0].title).toBe('Extra cheese');
+    });
+
+    it('should handle items without customer items', () => {
+      const entity = OrderFactory.createOrderEntity();
+      entity.items = [
+        {
+          productId: 1,
+          title: 'Product 1',
+          description: 'Description',
+          photo: 'photo.jpg',
+          quantity: 2,
+          price: 50.25,
+          unitPrice: 50.25,
+          observation: null,
+          type: 'MAIN',
+          customerItems: null,
+        },
+      ];
+
+      const input = OrderMapper.toCreateInput(entity);
+
+      expect(input.items.create[0].customerItems).toBeUndefined();
+    });
+
+    it('should handle empty customer items array', () => {
+      const entity = OrderFactory.createOrderEntity();
+      entity.items = [
+        {
+          productId: 1,
+          title: 'Product 1',
+          description: 'Description',
+          photo: 'photo.jpg',
+          quantity: 2,
+          price: 50.25,
+          unitPrice: 50.25,
+          observation: null,
+          type: 'MAIN',
+          customerItems: [],
+        },
+      ];
+
+      const input = OrderMapper.toCreateInput(entity);
+
+      expect(input.items.create[0].customerItems).toBeUndefined();
+    });
+
+    it('should use price as unitPrice when unitPrice is not provided', () => {
+      const entity = OrderFactory.createOrderEntity();
+      entity.items = [
+        {
+          productId: 1,
+          title: 'Product 1',
+          description: 'Description',
+          photo: 'photo.jpg',
+          quantity: 2,
+          price: 50.25,
+          unitPrice: null,
+          observation: null,
+          type: 'MAIN',
+          customerItems: [],
+        },
+      ];
+
+      const input = OrderMapper.toCreateInput(entity);
+
+      expect(input.items.create[0].unitPrice).toBe(50.25);
+    });
+
+    it('should handle customer items with missing title', () => {
+      const entity = OrderFactory.createOrderEntity();
+      entity.items = [
+        {
+          productId: 1,
+          title: 'Product 1',
+          description: 'Description',
+          photo: 'photo.jpg',
+          quantity: 2,
+          price: 50.25,
+          unitPrice: 50.25,
+          observation: null,
+          type: 'MAIN',
+          customerItems: [
+            {
+              itemId: 1,
+              title: null,
+              description: 'Cheese',
+              photo: 'cheese.jpg',
+              quantity: 1,
+              price: 5.0,
+              unitPrice: null,
+              observation: null,
+              type: 'ADDON',
+            },
+          ],
+        },
+      ];
+
+      const input = OrderMapper.toCreateInput(entity);
+
+      expect(input.items.create[0].customerItems.create[0].title).toBe('');
+      expect(input.items.create[0].customerItems.create[0].unitPrice).toBe(5.0);
+    });
+  });
+});
