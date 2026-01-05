@@ -1,54 +1,621 @@
-name: SonarCloud Analysis
+name: SonarQube Analysis - 80% Coverage per File
 
 on:
-  push:
-    branches:
-      - main
-      - development
-  workflow_call:
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  checks: write
+
+env:
+  MIN_COVERAGE: 80
+  IGNORE_PATTERNS: '**/*.dto.ts,**/*.enum.ts,**/value-objects/**,**/*.interface.ts,**/main.ts,**/index.ts,**/*.config.ts,**/migrations/**,**/seeders/**,**/*.module.ts'
 
 jobs:
-  sonarcloud:
-    name: SonarCloud Scan
+  build-and-test:
+    name: 🏗️ Build & Test
     runs-on: ubuntu-latest
-    needs: [eslint, typecheck, test]
+
     permissions:
       contents: read
       pull-requests: write
       checks: write
 
+    timeout-minutes: 15
+
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Configure NPM for GitHub Packages
-        run: |
-          echo "@vineco77:registry=https://npm.pkg.github.com/" > .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.NPM_TOKEN }}" >> .npmrc
-
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: npm ci
 
-      - name: Run tests with coverage
-        run: npm run test:cov
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
+      - name: 🏗️ Build application
+        run: npm run build
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+      - name: 🧪 Run tests with coverage
+        id: run-tests
+        run: |
+          echo "Running tests with coverage..."
+          npm test -- --coverage --coverageReporters=json-summary --coverageReporters=lcov --coverageReporters=text
+
+          # Verifica se o lcov.info foi gerado
+          if [ -f "coverage/lcov.info" ]; then
+            echo "✅ lcov.info generated successfully"
+            echo "File size: $(wc -l < coverage/lcov.info) lines"
+          else
+            echo "❌ ERROR: lcov.info not generated!"
+            ls -la coverage/ 2>/dev/null || echo "No coverage directory"
+            exit 1
+          fi
+
+      - name: ✅ Report job completion
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Job 'build-and-test' completed successfully"
+          else
+            echo "❌ Job 'build-and-test' failed"
+          fi
+
+  verify-coverage-per-file:
+    name: 🔬 Verify 80% Coverage PER FILE
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    timeout-minutes: 10
+
+    outputs:
+      coverage_passed: ${{ steps.check-coverage.outputs.passed }}
+      failed_files: ${{ steps.check-coverage.outputs.failed_files }}
+      failed_count: ${{ steps.check-coverage.outputs.failed_count }}
+      coverage_summary: ${{ steps.check-coverage.outputs.coverage_summary }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 📊 Generate detailed coverage report
+        run: |
+          npm test -- --coverage \
+            --coverageReporters=json-summary \
+            --coverageReporters=lcov \
+            --coverageReporters=text \
+            --coverageReporters=html
+
+      - name: 🔍 Validate 80% Coverage PER FILE
+        id: check-coverage
+        run: |
+          # Script Node.js que valida CADA ARQUIVO individualmente
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+
+          console.log('🔍 VALIDAÇÃO: 80% de cobertura POR ARQUIVO');
+          console.log('===========================================');
+          console.log('Mínimo exigido por arquivo: 80%');
+          console.log('Arquivos ignorados: DTOs, Enums, Interfaces, Value Objects, Main, Configs\\n');
+
+          // 1. CARREGAR RELATÓRIO
+          const summaryPath = './coverage/coverage-summary.json';
+          if (!fs.existsSync(summaryPath)) {
+            console.error('❌ Relatório de cobertura não encontrado!');
+            process.exit(1);
+          }
+
+          const coverageData = require(summaryPath);
+          const MIN_COVERAGE = 80;
+          const totalCoverage = coverageData.total?.lines?.pct || 0;
+
+          // 2. PADRÕES DE IGNORAÇÃO
+          const IGNORE_PATTERNS = [
+            /\.dto\.ts$/i,
+            /\.enum\.ts$/i,
+            /\.interface\.ts$/i,
+            /\/value-objects\//i,
+            /main\.ts$/i,
+            /index\.ts$/i,
+            /\.config\.ts$/i,
+            /\.module\.ts$/i,
+            /migrations\//i,
+            /seeders\//i,
+            /test\.ts$/i,
+            /spec\.ts$/i,
+            /mock/i,
+            /__tests__/i,
+            /test\//i
+          ];
+
+          function shouldIgnore(filePath) {
+            const normalized = filePath.toLowerCase();
+            return IGNORE_PATTERNS.some(pattern => pattern.test(normalized));
+          }
+
+          function calculateFileAverage(data) {
+            const { lines, statements, functions, branches } = data;
+            const values = [
+              lines?.pct || 0,
+              statements?.pct || 0,
+              functions?.pct || 0,
+              branches?.pct || 0
+            ].filter(val => !isNaN(val));
+
+            return values.length > 0
+              ? values.reduce((sum, val) => sum + val, 0) / values.length
+              : 100; // Se não tem dados, considera coberto
+          }
+
+          // 3. ANÁLISE POR ARQUIVO
+          const results = {
+            passed: [],
+            failed: [],
+            ignored: [],
+            summary: {
+              totalFiles: 0,
+              analyzedFiles: 0,
+              passedFiles: 0,
+              failedFiles: 0,
+              ignoredFiles: 0,
+              overallCoverage: totalCoverage
+            }
+          };
+
+          for (const [filePath, data] of Object.entries(coverageData)) {
+            if (filePath === 'total') continue;
+
+            results.summary.totalFiles++;
+
+            // Verificar se deve ignorar
+            if (shouldIgnore(filePath)) {
+              results.ignored.push({
+                file: filePath,
+                reason: 'Matches ignore pattern (DTO/Enum/Interface/etc)'
+              });
+              results.summary.ignoredFiles++;
+              continue;
+            }
+
+            // Calcular cobertura média do arquivo
+            const avgCoverage = calculateFileAverage(data);
+            const fileResult = {
+              file: filePath,
+              coverage: {
+                lines: data.lines?.pct || 0,
+                statements: data.statements?.pct || 0,
+                functions: data.functions?.pct || 0,
+                branches: data.branches?.pct || 0,
+                average: Math.round(avgCoverage * 100) / 100
+              }
+            };
+
+            results.summary.analyzedFiles++;
+
+            // Classificar como passou ou falhou (80% POR ARQUIVO)
+            if (fileResult.coverage.average >= MIN_COVERAGE) {
+              results.passed.push(fileResult);
+              results.summary.passedFiles++;
+            } else {
+              results.failed.push(fileResult);
+              results.summary.failedFiles++;
+            }
+          }
+
+          // 4. RELATÓRIO DETALHADO
+          console.log('📊 RESUMO DA ANÁLISE POR ARQUIVO:');
+          console.log('----------------------------------');
+          console.log(\`📁 Total de arquivos no projeto: \${results.summary.totalFiles}\`);
+          console.log(\`🔍 Arquivos analisados para cobertura: \${results.summary.analyzedFiles}\`);
+          console.log(\`⏭️  Arquivos ignorados (DTOs/Enums/etc): \${results.summary.ignoredFiles}\`);
+          console.log(\`✅ Arquivos com ≥\${MIN_COVERAGE}%: \${results.summary.passedFiles}\`);
+          console.log(\`❌ Arquivos com <\${MIN_COVERAGE}%: \${results.summary.failedFiles}\`);
+          console.log(\`📈 Cobertura total do projeto: \${results.summary.overallCoverage.toFixed(2)}%\`);
+
+          // 5. SE HOUVER ARQUIVOS COM FALHA
+          if (results.failed.length > 0) {
+            console.log('\\n❌❌❌ ARQUIVOS COM COBERTURA INSUFICIENTE (<80%):');
+            console.log('==============================================\\n');
+
+            results.failed.forEach((file, index) => {
+              console.log(\`\${index + 1}. \${file.file}\`);
+              console.log(\`   📉 Cobertura média: \${file.coverage.average}% (exigido: \${MIN_COVERAGE}%)\`);
+              console.log(\`   📊 Detalhes:\`);
+              console.log(\`      • Lines: \${file.coverage.lines.toFixed(1)}%\`);
+              console.log(\`      • Statements: \${file.coverage.statements.toFixed(1)}%\`);
+              console.log(\`      • Functions: \${file.coverage.functions.toFixed(1)}%\`);
+              console.log(\`      • Branches: \${file.coverage.branches.toFixed(1)}%\`);
+              console.log('');
+            });
+
+            console.log('🔧 AÇÕES NECESSÁRIAS:');
+            console.log('1. Adicione testes para os arquivos acima');
+            console.log('2. Execute: npm test -- --coverage');
+            console.log('3. Garanta que cada arquivo atinja 80%');
+            console.log('4. Atualize este PR após corrigir\\n');
+
+            // Preparar dados para output
+            const failedFilesList = results.failed.map(f => f.file).join('|');
+
+            // Salvar arquivo com detalhes
+            fs.writeFileSync(
+              'coverage-per-file-results.json',
+              JSON.stringify({
+                validation_passed: false,
+                requirement: '80% per file',
+                summary: results.summary,
+                failed_files: results.failed,
+                passed_files_count: results.passed.length,
+                timestamp: new Date().toISOString()
+              }, null, 2)
+            );
+
+            // ⭐ CORREÇÃO: Salvar outputs em arquivo para GitHub Actions
+            const outputs = {
+              passed: 'false',
+              failed_files: failedFilesList,
+              failed_count: results.failed.length.toString(),
+              coverage_summary: JSON.stringify(results.summary)
+            };
+
+            // Escrever outputs no formato correto
+            const outputPath = process.env.GITHUB_OUTPUT || '/tmp/github_output.txt';
+            let outputContent = '';
+            for (const [key, value] of Object.entries(outputs)) {
+              outputContent += \`\${key}=\${value}\n\`;
+            }
+            fs.writeFileSync(outputPath, outputContent, { flag: 'a' });
+
+            console.log('✅ Outputs saved for GitHub Actions');
+            process.exit(1);
+
+          } else {
+            // 6. TODOS OS ARQUIVOS PASSARAM
+            console.log('\\n🎉🎉🎉 VALIDAÇÃO POR ARQUIVO APROVADA! 🎉🎉🎉');
+            console.log('==========================================');
+            console.log(\`✅ Todos \${results.summary.analyzedFiles} arquivos atendem \${MIN_COVERAGE}% de cobertura\`);
+
+            // Mostrar alguns exemplos
+            if (results.passed.length > 0) {
+              console.log('\\n🏆 Top 3 arquivos com melhor cobertura:');
+              const topFiles = [...results.passed]
+                .sort((a, b) => b.coverage.average - a.coverage.average)
+                .slice(0, 3);
+
+              topFiles.forEach((file, i) => {
+                console.log(\`  \${i + 1}. \${file.file} - \${file.coverage.average}%\`);
+              });
+            }
+
+            // Salvar resultados
+            fs.writeFileSync(
+              'coverage-per-file-results.json',
+              JSON.stringify({
+                validation_passed: true,
+                requirement: '80% per file',
+                summary: results.summary,
+                passed_files_count: results.passed.length,
+                timestamp: new Date().toISOString()
+              }, null, 2)
+            );
+
+            // ⭐ CORREÇÃO: Salvar outputs em arquivo para GitHub Actions
+            const outputs = {
+              passed: 'true',
+              failed_files: '',
+              failed_count: '0',
+              coverage_summary: JSON.stringify(results.summary)
+            };
+
+            // Escrever outputs no formato correto
+            const outputPath = process.env.GITHUB_OUTPUT || '/tmp/github_output.txt';
+            let outputContent = '';
+            for (const [key, value] of Object.entries(outputs)) {
+              outputContent += \`\${key}=\${value}\n\`;
+            }
+            fs.writeFileSync(outputPath, outputContent, { flag: 'a' });
+
+            console.log('✅ Outputs saved for GitHub Actions');
+          }
+          "
+
+      - name: 💾 Save coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-per-file-report-${{ github.sha }}
+          path: |
+            coverage/
+            coverage-per-file-results.json
+          retention-days: 30
+
+      - name: ✅ Report job completion
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Job 'verify-coverage-per-file' completed successfully"
+          else
+            echo "❌ Job 'verify-coverage-per-file' failed"
+          fi
+
+  sonarqube-analysis:
+    name: 📡 SonarQube Analysis
+    needs: verify-coverage-per-file
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    if: needs.verify-coverage-per-file.outputs.coverage_passed == 'true'
+
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 📁 Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-per-file-report-${{ github.sha }}
+          path: coverage/
+
+      - name: 🔍 Run SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            -Dsonar.verbose=true
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.coverage.exclusions=${{ env.IGNORE_PATTERNS }}
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
+            -Dsonar.analysis.detectedBranch=true
+
+      - name: ✅ Report job completion
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Job 'sonarqube-analysis' completed successfully"
+          else
+            echo "❌ Job 'sonarqube-analysis' failed"
+          fi
+
+  block-pr-on-failure:
+    name: 🚫 Block PR IF Insufficient File Coverage
+    needs: verify-coverage-per-file
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    if: |
+      github.event_name == 'pull_request' &&
+      needs.verify-coverage-per-file.outputs.coverage_passed == 'false'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📁 Download results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-per-file-report-*
+          merge-multiple: true
+
+      - name: 📝 Create detailed PR comment
+        uses: actions/github-script@v6
+        env:
+          FAILED_FILES: ${{ needs.verify-coverage-per-file.outputs.failed_files }}
+          FAILED_COUNT: ${{ needs.verify-coverage-per-file.outputs.failed_count }}
+          COVERAGE_SUMMARY: ${{ needs.verify-coverage-per-file.outputs.coverage_summary }}
+        with:
+          script: |
+            const { FAILED_FILES, FAILED_COUNT, COVERAGE_SUMMARY } = process.env;
+
+            let summary = {};
+            try {
+              summary = JSON.parse(COVERAGE_SUMMARY || '{}');
+            } catch (e) {
+              summary = { analyzedFiles: 0, failedFiles: 0 };
+            }
+
+            const failedFiles = FAILED_FILES ? FAILED_FILES.split('|') : [];
+            const failedCount = parseInt(FAILED_COUNT || '0');
+
+            let comment = `## 🚫 PR BLOQUEADO - Cobertura Insuficiente por Arquivo\n\n`;
+            comment += `### ❌ Validação Falhou: 80% de cobertura por arquivo não atendida\n\n`;
+
+            comment += `### 📊 Estatísticas da Análise:\n`;
+            comment += `- **Arquivos analisados:** ${summary.analyzedFiles || 0}\n`;
+            comment += `- **Arquivos com falha (<80%):** ${failedCount}\n`;
+            comment += `- **Arquivos aprovados (≥80%):** ${summary.passedFiles || 0}\n`;
+            comment += `- **Arquivos ignorados (DTOs/Enums/etc):** ${summary.ignoredFiles || 0}\n`;
+            comment += `- **Cobertura total do projeto:** ${summary.overallCoverage ? summary.overallCoverage.toFixed(2) : 'N/A'}%\n\n`;
+
+            if (failedFiles.length > 0) {
+              comment += `### 📁 Arquivos que Necessitam de Mais Testes:\n`;
+              failedFiles.forEach((file, index) => {
+                comment += `${index + 1}. \`${file}\`\n`;
+              });
+              comment += `\n`;
+            }
+
+            comment += `### 🔧 Como Resolver:\n`;
+            comment += `1. **Adicione testes unitários** para cada arquivo listado acima\n`;
+            comment += `2. Execute localmente: \`npm test -- --coverage\`\n`;
+            comment += `3. **Verifique se cada arquivo individual** atinge 80% de cobertura\n`;
+            comment += `4. **Cobertura é calculada por:** Linhas + Statements + Functions + Branches\n`;
+            comment += `5. Atualize este PR após corrigir\n\n`;
+
+            comment += `> **Nota:** Esta validação é mais rigorosa que o requisito do professor (70% total).\n`;
+            comment += `> **Arquivos ignorados:** DTOs, Enums, Interfaces, Value Objects, main.ts, configs, migrations.\n`;
+
+            // Adicionar comentário no PR
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+            // Adicionar review request changes
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'REQUEST_CHANGES',
+              body: `❌ PR bloqueado: ${failedCount} arquivo(s) não atendem 80% de cobertura individual.`
+            });
+
+      - name: 🚫 Fail workflow to block merge
+        run: |
+          echo "================================================"
+          echo "🚫🚫🚫        PR BLOQUEADO AUTOMATICAMENTE    🚫🚫🚫"
+          echo "================================================"
+          echo ""
+          echo "MOTIVO: Validação de 80% de cobertura por arquivo falhou"
+          echo ""
+          echo "RESUMO:"
+          echo "- Um ou mais arquivos têm cobertura < 80%"
+          echo "- Verifique o comentário no PR para detalhes"
+          echo ""
+          echo "PRÓXIMOS PASSOS:"
+          echo "1. Verifique os arquivos listados no comentário do PR"
+          echo "2. Adicione testes unitários para esses arquivos"
+          echo "3. Execute: npm test -- --coverage"
+          echo "4. Confirme que cada arquivo atinge 80%"
+          echo "5. Atualize este PR"
+          echo ""
+          echo "Arquivos com problema foram salvos em coverage-per-file-results.json"
+          echo "================================================"
+          exit 1
+
+  final-validation:
+    name: ✅ Final Validation & Summary
+    needs: [verify-coverage-per-file, sonarqube-analysis]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    if: |
+      github.event_name == 'pull_request' &&
+      needs.verify-coverage-per-file.result == 'success' &&
+      (needs.sonarqube-analysis.result == 'success' || needs.sonarqube-analysis.result == 'skipped')
+
+    steps:
+      - name: 📋 Create success summary
+        uses: actions/github-script@v6
+        env:
+          COVERAGE_SUMMARY: ${{ needs.verify-coverage-per-file.outputs.coverage_summary }}
+        with:
+          script: |
+            let summary = {};
+            try {
+              summary = JSON.parse(process.env.COVERAGE_SUMMARY || '{}');
+            } catch (e) {
+              summary = { analyzedFiles: 0, overallCoverage: 0 };
+            }
+
+            let comment = `## ✅✅✅ TODAS AS VALIDAÇÕES PASSARAM! ✅✅✅\n\n`;
+            comment += `### 🎉 PR Pronto para Merge\n\n`;
+
+            comment += `### 📊 Validação por Arquivo Aprovada:\n`;
+            comment += `- **Arquivos analisados:** ${summary.analyzedFiles || 0}\n`;
+            comment += `- **Arquivos aprovados (≥80%):** ${summary.passedFiles || 0}\n`;
+            comment += `- **Cobertura total:** ${summary.overallCoverage ? summary.overallCoverage.toFixed(2) : 'N/A'}%\n`;
+            comment += `- **SonarQube Analysis:** ✅ Completa\n\n`;
+
+            comment += `### 🎯 Requisitos Atendidos:\n`;
+            comment += `1. ✅ **80% de cobertura por arquivo** (seu requisito extra)\n`;
+            comment += `2. ✅ **Build da aplicação**\n`;
+            comment += `3. ✅ **Análise SonarQube** (qualidade do código)\n`;
+            comment += `4. ✅ **Quality Gate do SonarQube**\n\n`;
+
+            comment += `### 👥 Próximos Passos:\n`;
+            comment += `1. Aguarde aprovação de review do time\n`;
+            comment += `2. Merge para main quando aprovado\n`;
+            comment += `3. Deploy automático (se configurado)\n\n`;
+
+            comment += `> **Excelente trabalho!** O código atende todos os requisitos de qualidade. 🚀\n`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: 🎉 All checks passed
+        run: |
+          echo "========================================"
+          echo "✅✅✅ ALL VALIDATIONS PASSED! ✅✅✅"
+          echo "========================================"
+          echo ""
+          echo "✓ Build: Successful"
+          echo "✓ Test coverage: ≥80% PER FILE (validated)"
+          echo "✓ SonarQube analysis: Completed"
+          echo "✓ Code quality: Meets standards"
+          echo ""
+          echo "This PR is ready for manual review and merge!"
+          echo ""
+          echo "Files analyzed: ${{ needs.verify-coverage-per-file.outputs.coverage_summary.analyzedFiles || 'N/A' }}"
+          echo "Overall coverage: ${{ needs.verify-coverage-per-file.outputs.coverage_summary.overallCoverage || 'N/A' }}%"
+          echo ""
+          echo "🚀 Ready to merge! 🚀"
+
+      - name: ✅ Report final validation completion
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Job 'final-validation' completed successfully"
+          else
+            echo "❌ Job 'final-validation' failed"
+          fi

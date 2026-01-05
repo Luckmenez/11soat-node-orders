@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-// import { firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import {
   PaymentDtoResponse,
   CreatePaymentGatewayRequest,
@@ -22,46 +22,36 @@ export class PaymentGatewayService implements PaymentGatewayPort {
     );
   }
 
-  //mock
   async createPayment(
     paymentData: CreatePaymentGatewayRequest,
   ): Promise<PaymentDtoResponse> {
-    setTimeout(() => {}, 1000);
+    const { data } = await firstValueFrom(
+      this.httpService.post<PaymentDtoResponse>(
+        `${this.paymentServiceUrl}/payment/create`,
+        {
+          ...paymentData,
+        },
+      ),
+    ).catch((error) => {
+      console.error(
+        'Error creating payment in gateway:',
+        error.response?.data || error.message,
+      );
+      throw error;
+    });
 
-    // await firstValueFrom(
-    //   this.httpService.post<void>(
-    //     `${this.paymentServiceUrl}/payments/create`,
-    //     { paymentData },
-    //   ),
-    // );
+    console.log(data);
 
-    console.log('Creating payment with data:', paymentData);
-
-    return {
-      id: paymentData.orderId,
-      transactionId: 'tx123456789',
-      status: 'PAID',
-      amount: paymentData.amount,
-      urlPayment: `https://payment-gateway.com/orders/update-order-payment/${paymentData.orderId}`,
-      qrCodeBase64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...',
-      qrCodeString: '00020101021226860014br.gov.bcb.pix0136...',
-      expirationDate: new Date(Date.now() + 30 * 60000),
-    };
+    return data;
   }
 
   async cancelPayment({
     transactionId,
   }: PaymentDeleteGatewayRequest): Promise<void> {
-    setTimeout(() => {}, 500);
-
-    // await firstValueFrom(
-    //   this.httpService.delete<void>(
-    //     `${this.paymentServiceUrl}/payments/cancel/${transactionId}`,
-    //   ),
-    // );
-
-    console.log(
-      `Payment with transaction ID ${transactionId} has been canceled.`,
+    await firstValueFrom(
+      this.httpService.delete<void>(
+        `${this.paymentServiceUrl}/payment/cancel/${transactionId}`,
+      ),
     );
   }
 }

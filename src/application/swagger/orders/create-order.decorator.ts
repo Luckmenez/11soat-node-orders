@@ -10,7 +10,8 @@ export function ApiCreateOrder() {
   return applyDecorators(
     ApiOperation({
       summary: 'Criar novo pedido',
-      description: 'Cria um novo pedido no sistema com itens e informações do cliente',
+      description:
+        'Cria um novo pedido no sistema com itens e informações do cliente',
     }),
     ApiHeader({
       name: 'Authorization',
@@ -97,7 +98,10 @@ export function ApiCreateOrder() {
             type: 'object',
             properties: {
               code: { type: 'string', example: 'UNAUTHORIZED' },
-              message: { type: 'string', example: 'Token inválido ou expirado' },
+              message: {
+                type: 'string',
+                example: 'Token inválido ou expirado',
+              },
             },
           },
         },
