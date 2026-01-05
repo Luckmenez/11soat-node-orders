@@ -20,13 +20,18 @@ describe('CreateOrderUseCase', () => {
   let mockAuthGateway: any;
   let mockOrderRepository: any;
   let mockPaymentGateway: any;
+  let mockConfigService: any;
 
   beforeEach(() => {
     mockAuthGateway = createMockAuthGateway();
     mockOrderRepository = createMockOrderRepository();
     mockPaymentGateway = createMockPaymentGateway();
+    mockConfigService = {
+      get: jest.fn().mockReturnValue('http://localhost:3000'),
+    };
 
     useCase = new CreateOrderUseCase(
+      mockConfigService,
       mockAuthGateway,
       mockOrderRepository,
       mockPaymentGateway,
@@ -140,6 +145,7 @@ describe('CreateOrderUseCase', () => {
     it('should handle token without CPF', async () => {
       mockAuthGateway = createMockAuthGatewayWithNoCpf();
       useCase = new CreateOrderUseCase(
+        mockConfigService,
         mockAuthGateway,
         mockOrderRepository,
         mockPaymentGateway,
@@ -160,6 +166,7 @@ describe('CreateOrderUseCase', () => {
     it('should throw error when auth gateway fails', async () => {
       mockAuthGateway = createMockAuthGatewayWithError();
       useCase = new CreateOrderUseCase(
+        mockConfigService,
         mockAuthGateway,
         mockOrderRepository,
         mockPaymentGateway,
@@ -178,6 +185,7 @@ describe('CreateOrderUseCase', () => {
     it('should throw error when repository save fails', async () => {
       mockOrderRepository = createMockOrderRepositoryWithError();
       useCase = new CreateOrderUseCase(
+        mockConfigService,
         mockAuthGateway,
         mockOrderRepository,
         mockPaymentGateway,
@@ -195,6 +203,7 @@ describe('CreateOrderUseCase', () => {
     it('should throw error when payment gateway fails', async () => {
       mockPaymentGateway = createMockPaymentGatewayWithError();
       useCase = new CreateOrderUseCase(
+        mockConfigService,
         mockAuthGateway,
         mockOrderRepository,
         mockPaymentGateway,
