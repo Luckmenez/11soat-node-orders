@@ -46,6 +46,9 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
 
+      - name: 🔧 Generate Prisma Client
+        run: npx prisma generate --schema=./src/infrastructure/persistence/prisma/schema.prisma
+
       - name: 🏗️ Build application
         run: npm run build
 
@@ -111,6 +114,9 @@ jobs:
 
       - name: 📦 Install dependencies
         run: npm ci
+
+      - name: 🔧 Generate Prisma Client
+        run: npx prisma generate --schema=./src/infrastructure/persistence/prisma/schema.prisma
 
       - name: 📊 Generate detailed coverage report
         run: |
