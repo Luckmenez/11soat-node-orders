@@ -60,7 +60,6 @@ export class OrdersController {
   @ApiUpdateOrderPayment()
   @Patch('update-order-payment')
   updateOrderPayment(@Body() updateOrderPaymentBody: UpdateOrderPaymentDto) {
-    console.log('UpdateOrderPaymentDto:', updateOrderPaymentBody);
     return this.updateOrderPaymentUseCase.execute(updateOrderPaymentBody);
   }
 
