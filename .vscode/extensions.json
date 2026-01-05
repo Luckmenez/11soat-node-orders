@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "sonarsource.sonarlint-vscode",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "prisma.prisma",
+    "firsttris.vscode-jest-runner",
+    "orta.vscode-jest"
+  ]
+}
