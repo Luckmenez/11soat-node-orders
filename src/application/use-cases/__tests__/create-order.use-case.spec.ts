@@ -107,10 +107,9 @@ describe('CreateOrderUseCase', () => {
           client: expect.objectContaining({
             document: expect.any(String),
             name: expect.any(String),
-            email: expect.any(String),
             id: expect.any(Number),
           }),
-          callbackUrl: expect.stringContaining('/payments/callback/'),
+          callbackUrl: expect.stringContaining('/orders/update-order-payment/'),
           items: expect.any(Array),
         }),
       );
@@ -272,7 +271,7 @@ describe('CreateOrderUseCase', () => {
 
       expect(mockPaymentGateway.createPayment).toHaveBeenCalledWith(
         expect.objectContaining({
-          callbackUrl: expect.stringMatching(/\/payments\/callback\/\d+/),
+          callbackUrl: expect.stringMatching(/\/orders\/update-order-payment\/\d+/),
         }),
       );
     });
