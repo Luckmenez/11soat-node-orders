@@ -429,18 +429,16 @@ jobs:
           name: coverage-per-file-report-${{ github.sha }}
           path: coverage/
 
-      - name: 🔍 Run SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@master
+      - name: 🔍 Run SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: >
-            -Dsonar.qualitygate.wait=true
             -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
             -Dsonar.pullrequest.branch=${{ github.head_ref }}
             -Dsonar.pullrequest.base=${{ github.base_ref }}
-            -Dsonar.analysis.detectedBranch=true
 
       - name: ✅ Report job completion
         if: always()
