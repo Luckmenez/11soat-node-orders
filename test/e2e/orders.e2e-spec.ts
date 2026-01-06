@@ -10,9 +10,48 @@ describe('Orders E2E Tests', () => {
   let prisma: PrismaService;
 
   beforeAll(async () => {
+    const mockAuthGateway = {
+      decodeToken: jest.fn().mockImplementation(async (token: string) => {
+        if (!token) {
+          return null;
+        }
+        return {
+          sub: '1',
+          cpf: '12345678900',
+          name: 'Test User',
+          email: 'test@example.com',
+        };
+      }),
+    };
+
+    const mockPaymentGateway = {
+      createPayment: jest.fn().mockResolvedValue({
+        id: 1,
+        transactionId: 'test-transaction',
+        status: 'PENDING',
+        amount: 100,
+        urlPayment: 'http://test.com/pay',
+        qrCodeBase64: 'base64string',
+        qrCodeString: '00020101021243650016COM.MERCADOLIBRE',
+        expirationDate: new Date(),
+      }),
+      cancelPayment: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const mockProductGateway = {
+      sendToPreparation: jest.fn().mockResolvedValue(undefined),
+    };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider('AuthGatewayPort')
+      .useValue(mockAuthGateway)
+      .overrideProvider('PaymentGatewayPort')
+      .useValue(mockPaymentGateway)
+      .overrideProvider('ProductGatewayPort')
+      .useValue(mockProductGateway)
+      .compile();
 
     app = moduleFixture.createNestApplication();
 
@@ -248,7 +287,7 @@ describe('Orders E2E Tests', () => {
 
     it('should return first page of orders', async () => {
       const response = await request(app.getHttpServer())
-        .get('/orders/get-paginated/1/10')
+        .get('/orders/get-paginated?page=1&limit=10')
         .expect(200);
 
       expect(response.body).toHaveProperty('data');
@@ -264,7 +303,7 @@ describe('Orders E2E Tests', () => {
 
     it('should return second page of orders', async () => {
       const response = await request(app.getHttpServer())
-        .get('/orders/get-paginated/2/10')
+        .get('/orders/get-paginated?page=2&limit=10')
         .expect(200);
 
       expect(response.body.data).toHaveLength(5);
@@ -274,7 +313,7 @@ describe('Orders E2E Tests', () => {
 
     it('should return empty page when beyond data', async () => {
       const response = await request(app.getHttpServer())
-        .get('/orders/get-paginated/3/10')
+        .get('/orders/get-paginated?page=3&limit=10')
         .expect(200);
 
       expect(response.body.data).toHaveLength(0);
@@ -284,7 +323,7 @@ describe('Orders E2E Tests', () => {
 
     it('should handle different page sizes', async () => {
       const response = await request(app.getHttpServer())
-        .get('/orders/get-paginated/1/5')
+        .get('/orders/get-paginated?page=1&limit=5')
         .expect(200);
 
       expect(response.body.data).toHaveLength(5);
@@ -293,7 +332,7 @@ describe('Orders E2E Tests', () => {
 
     it('should return all items with correct structure', async () => {
       const response = await request(app.getHttpServer())
-        .get('/orders/get-paginated/1/10')
+        .get('/orders/get-paginated?page=1&limit=10')
         .expect(200);
 
       const firstOrder = response.body.data[0];
@@ -463,7 +502,7 @@ describe('Orders E2E Tests', () => {
 
       // 2. List orders and verify it exists
       const listResponse = await request(app.getHttpServer())
-        .get('/orders/get-paginated/1/10')
+        .get('/orders/get-paginated?page=1&limit=10')
         .expect(200);
 
       const orderInList = listResponse.body.data.find(
@@ -471,7 +510,7 @@ describe('Orders E2E Tests', () => {
       );
       expect(orderInList).toBeDefined();
       expect(orderInList.status).toBe(OrderStatus.PENDING);
-      expect(orderInList.clientCpf).toBe('55566677788');
+      expect(orderInList.clientCpf).toBe('12345678900'); // CPF from token
 
       // 3. Update payment to PAID
       await request(app.getHttpServer())

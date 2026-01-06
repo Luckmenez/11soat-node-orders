@@ -37,7 +37,7 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
       isRandomClient: tokenPayload?.sub ? true : false,
       codeClientRandom: orderData.codeClientRandom,
       observation: orderData.observation,
-      clientId: tokenPayload.sub,
+      clientId: tokenPayload?.sub || null,
     });
 
     const createdOrder = await this.orderRepository.save(orderEntity);
@@ -63,6 +63,9 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
       })),
     });
 
-    return paymentData;
+    return {
+      ...paymentData,
+      orderId: createdOrder.id,
+    };
   }
 }
