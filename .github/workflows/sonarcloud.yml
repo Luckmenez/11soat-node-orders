@@ -57,8 +57,8 @@ jobs:
       - name: 🧪 Run tests with coverage
         id: run-tests
         run: |
-          echo "Running tests with coverage..."
-          npm test -- --coverage --coverageReporters=json-summary --coverageReporters=lcov --coverageReporters=text
+          echo "Running unit tests with coverage..."
+          npm run test:unit:cov -- --coverageReporters=json-summary --coverageReporters=lcov --coverageReporters=text
 
           # Verifica se o lcov.info foi gerado
           if [ -f "coverage/lcov.info" ]; then
@@ -124,7 +124,7 @@ jobs:
 
       - name: 📊 Generate detailed coverage report
         run: |
-          npm test -- --coverage \
+          npm run test:unit:cov -- \
             --coverageReporters=json-summary \
             --coverageReporters=lcov \
             --coverageReporters=text \

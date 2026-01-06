@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:unit": "jest --testPathPattern=spec.ts --testPathIgnorePatterns=integration.spec.ts --testPathIgnorePatterns=e2e-spec.ts",
+    "test:unit:cov": "jest --testPathPattern=spec.ts --testPathIgnorePatterns=integration.spec.ts --testPathIgnorePatterns=e2e-spec.ts --coverage",
     "test:integration": "jest --testPathPattern=integration.spec.ts",
     "test:bdd": "jest --config ./test/jest-bdd.json",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
@@ -94,7 +95,9 @@
       "!**/configuration.ts",
       "!**/validation.schema.ts",
       "!**/*.config.ts",
-      "!**/prisma.service.ts"
+      "!**/prisma.service.ts",
+      "!**/*.spec.ts",
+      "!**/__tests__/**"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
