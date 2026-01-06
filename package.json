@@ -90,7 +90,11 @@
       "!**/*.interface.ts",
       "!**/*.dto.ts",
       "!**/*.enum.ts",
-      "!main.ts"
+      "!main.ts",
+      "!**/configuration.ts",
+      "!**/validation.schema.ts",
+      "!**/*.config.ts",
+      "!**/prisma.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
