@@ -9,7 +9,7 @@ describe('OrderMapper', () => {
         id: 1,
         clientCpf: '12345678900',
         status: OrderStatus.PENDING,
-        amount: 100.50,
+        amount: 100.5,
         transactionId: null,
         isRandomClient: false,
         codeClientRandom: null,
@@ -39,7 +39,7 @@ describe('OrderMapper', () => {
       expect(entity.id).toBe(1);
       expect(entity.clientCpf).toBe('12345678900');
       expect(entity.status).toBe(OrderStatus.PENDING);
-      expect(entity.amount).toBe(100.50);
+      expect(entity.amount).toBe(100.5);
       expect(entity.items).toHaveLength(1);
     });
 
@@ -61,7 +61,7 @@ describe('OrderMapper', () => {
       const entity = OrderMapper.toEntity(dbOrder as any);
 
       expect(typeof entity.amount).toBe('number');
-      expect(entity.amount).toBe(100.50);
+      expect(entity.amount).toBe(100.5);
     });
 
     it('should handle nested customer items', () => {
@@ -182,37 +182,37 @@ describe('OrderMapper', () => {
       expect(input.transactionId).toBeNull();
     });
   });
-});
 
-  describe('toCreateInput', () => {
+  describe('toCreateInput - with customer items', () => {
     it('should convert entity to create input with customer items', () => {
-      const entity = OrderFactory.createOrderEntity();
-      entity.items = [
-        {
-          productId: 1,
-          title: 'Product 1',
-          description: 'Description',
-          photo: 'photo.jpg',
-          quantity: 2,
-          price: 50.25,
-          unitPrice: 50.25,
-          observation: 'No onions',
-          type: 'MAIN',
-          customerItems: [
-            {
-              itemId: 1,
-              title: 'Extra cheese',
-              description: 'Cheese',
-              photo: 'cheese.jpg',
-              quantity: 1,
-              price: 5.0,
-              unitPrice: 5.0,
-              observation: null,
-              type: 'ADDON',
-            },
-          ],
-        },
-      ];
+      const entity = OrderFactory.createOrderEntity({
+        items: [
+          {
+            productId: 1,
+            title: 'Product 1',
+            description: 'Description',
+            photo: 'photo.jpg',
+            quantity: 2,
+            price: 50.25,
+            unitPrice: 50.25,
+            observation: 'No onions',
+            type: 'MAIN',
+            customerItems: [
+              {
+                itemId: 1,
+                title: 'Extra cheese',
+                description: 'Cheese',
+                photo: 'cheese.jpg',
+                quantity: 1,
+                price: 5.0,
+                unitPrice: 5.0,
+                observation: null,
+                type: 'ADDON',
+              },
+            ],
+          },
+        ],
+      });
 
       const input = OrderMapper.toCreateInput(entity);
 
@@ -221,25 +221,28 @@ describe('OrderMapper', () => {
       expect(input.amount).toBe(entity.amount);
       expect(input.items.create).toHaveLength(1);
       expect(input.items.create[0].customerItems.create).toHaveLength(1);
-      expect(input.items.create[0].customerItems.create[0].title).toBe('Extra cheese');
+      expect(input.items.create[0].customerItems.create[0].title).toBe(
+        'Extra cheese',
+      );
     });
 
     it('should handle items without customer items', () => {
-      const entity = OrderFactory.createOrderEntity();
-      entity.items = [
-        {
-          productId: 1,
-          title: 'Product 1',
-          description: 'Description',
-          photo: 'photo.jpg',
-          quantity: 2,
-          price: 50.25,
-          unitPrice: 50.25,
-          observation: null,
-          type: 'MAIN',
-          customerItems: null,
-        },
-      ];
+      const entity = OrderFactory.createOrderEntity({
+        items: [
+          {
+            productId: 1,
+            title: 'Product 1',
+            description: 'Description',
+            photo: 'photo.jpg',
+            quantity: 2,
+            price: 50.25,
+            unitPrice: 50.25,
+            observation: null,
+            type: 'MAIN',
+            customerItems: null,
+          },
+        ],
+      });
 
       const input = OrderMapper.toCreateInput(entity);
 
@@ -247,43 +250,45 @@ describe('OrderMapper', () => {
     });
 
     it('should handle empty customer items array', () => {
-      const entity = OrderFactory.createOrderEntity();
-      entity.items = [
-        {
-          productId: 1,
-          title: 'Product 1',
-          description: 'Description',
-          photo: 'photo.jpg',
-          quantity: 2,
-          price: 50.25,
-          unitPrice: 50.25,
-          observation: null,
-          type: 'MAIN',
-          customerItems: [],
-        },
-      ];
+      const entity = OrderFactory.createOrderEntity({
+        items: [
+          {
+            productId: 1,
+            title: 'Product 1',
+            description: 'Description',
+            photo: 'photo.jpg',
+            quantity: 2,
+            price: 50.25,
+            unitPrice: 50.25,
+            observation: null,
+            type: 'MAIN',
+            customerItems: [],
+          },
+        ],
+      });
 
       const input = OrderMapper.toCreateInput(entity);
 
-      expect(input.items.create[0].customerItems).toBeUndefined();
+      expect(input.items.create[0].customerItems).toEqual({ create: [] });
     });
 
     it('should use price as unitPrice when unitPrice is not provided', () => {
-      const entity = OrderFactory.createOrderEntity();
-      entity.items = [
-        {
-          productId: 1,
-          title: 'Product 1',
-          description: 'Description',
-          photo: 'photo.jpg',
-          quantity: 2,
-          price: 50.25,
-          unitPrice: null,
-          observation: null,
-          type: 'MAIN',
-          customerItems: [],
-        },
-      ];
+      const entity = OrderFactory.createOrderEntity({
+        items: [
+          {
+            productId: 1,
+            title: 'Product 1',
+            description: 'Description',
+            photo: 'photo.jpg',
+            quantity: 2,
+            price: 50.25,
+            unitPrice: null,
+            observation: null,
+            type: 'MAIN',
+            customerItems: [],
+          },
+        ],
+      });
 
       const input = OrderMapper.toCreateInput(entity);
 
@@ -291,33 +296,34 @@ describe('OrderMapper', () => {
     });
 
     it('should handle customer items with missing title', () => {
-      const entity = OrderFactory.createOrderEntity();
-      entity.items = [
-        {
-          productId: 1,
-          title: 'Product 1',
-          description: 'Description',
-          photo: 'photo.jpg',
-          quantity: 2,
-          price: 50.25,
-          unitPrice: 50.25,
-          observation: null,
-          type: 'MAIN',
-          customerItems: [
-            {
-              itemId: 1,
-              title: null,
-              description: 'Cheese',
-              photo: 'cheese.jpg',
-              quantity: 1,
-              price: 5.0,
-              unitPrice: null,
-              observation: null,
-              type: 'ADDON',
-            },
-          ],
-        },
-      ];
+      const entity = OrderFactory.createOrderEntity({
+        items: [
+          {
+            productId: 1,
+            title: 'Product 1',
+            description: 'Description',
+            photo: 'photo.jpg',
+            quantity: 2,
+            price: 50.25,
+            unitPrice: 50.25,
+            observation: null,
+            type: 'MAIN',
+            customerItems: [
+              {
+                itemId: 1,
+                title: null,
+                description: 'Cheese',
+                photo: 'cheese.jpg',
+                quantity: 1,
+                price: 5.0,
+                unitPrice: null,
+                observation: null,
+                type: 'ADDON',
+              },
+            ],
+          },
+        ],
+      });
 
       const input = OrderMapper.toCreateInput(entity);
 

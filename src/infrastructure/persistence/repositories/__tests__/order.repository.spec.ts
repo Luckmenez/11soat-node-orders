@@ -1,5 +1,4 @@
 import { PrismaOrderRepository } from '../order.repository';
-import { PrismaService } from '../../prisma.service';
 import { OrderEntity } from 'src/application/domain/entities/orders.entity';
 import { OrderStatus } from 'src/application/value-objects/order-status.enum';
 import { OrderMapper } from '../../mappers/order.mapper';
@@ -52,7 +51,9 @@ describe('PrismaOrderRepository', () => {
 
     repository = new PrismaOrderRepository(mockPrismaService);
 
-    (OrderMapper.toEntity as jest.Mock) = jest.fn().mockReturnValue(mockOrderEntity);
+    (OrderMapper.toEntity as jest.Mock) = jest
+      .fn()
+      .mockReturnValue(mockOrderEntity);
     (OrderMapper.toCreateInput as jest.Mock) = jest.fn().mockReturnValue({});
   });
 
@@ -149,13 +150,13 @@ describe('PrismaOrderRepository', () => {
 
       const result = await repository.updateStatus(
         1,
-        OrderStatus.CONFIRMED,
+        OrderStatus.IN_PREPARATION,
         'txn_456',
       );
 
       expect(mockPrismaService.order.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { status: OrderStatus.CONFIRMED, transactionId: 'txn_456' },
+        data: { status: OrderStatus.IN_PREPARATION, transactionId: 'txn_456' },
         include: {
           items: {
             include: {

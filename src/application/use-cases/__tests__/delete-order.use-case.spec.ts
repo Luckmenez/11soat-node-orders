@@ -50,7 +50,7 @@ describe('DeleteOrderUseCase', () => {
       await useCase.execute(deleteDto);
 
       expect(mockOrderRepository.findById).toHaveBeenCalledWith(1);
-      expect(mockOrderRepository.delete).toHaveBeenCalledWith(orderId);
+      expect(mockOrderRepository.delete).toHaveBeenCalledWith(1);
       expect(mockPaymentGateway.cancelPayment).toHaveBeenCalledWith({
         transactionId: 'txn_123',
       });
@@ -66,7 +66,7 @@ describe('DeleteOrderUseCase', () => {
         'Order not found',
       );
 
-      expect(mockOrderRepository.findById).toHaveBeenCalledWith(1);
+      expect(mockOrderRepository.findById).toHaveBeenCalledWith(999);
       expect(mockOrderRepository.delete).not.toHaveBeenCalled();
       expect(mockPaymentGateway.cancelPayment).not.toHaveBeenCalled();
     });
