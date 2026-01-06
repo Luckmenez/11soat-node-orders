@@ -4,5 +4,4 @@ export class UpdateOrderPaymentDto {
   orderId: number;
   status: OrderStatus;
   transactionId: string;
-  amount: number;
 }

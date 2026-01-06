@@ -133,27 +133,28 @@ describe('OrdersController', () => {
 
   describe('updateOrderPayment', () => {
     it('should update order payment status', async () => {
+      const orderId = '1';
       const body = {
         status: OrderStatus.PAID,
         transactionId: 'TXN-123',
-        orderId: 1,
-        amount: 100,
       };
 
-      await controller.updateOrderPayment(body);
+      await controller.updateOrderPayment(orderId, body);
 
-      expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(body);
+      expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith({
+        orderId: 1,
+        ...body,
+      });
     });
 
     it('should pass orderId param to use case', async () => {
+      const orderId = '42';
       const body = {
         status: OrderStatus.PAID,
         transactionId: 'TXN-456',
-        orderId: 42,
-        amount: 200,
       };
 
-      await controller.updateOrderPayment(body);
+      await controller.updateOrderPayment(orderId, body);
 
       expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(
         expect.objectContaining({ orderId: 42 }),
@@ -161,14 +162,13 @@ describe('OrdersController', () => {
     });
 
     it('should pass status and transactionId to use case', async () => {
+      const orderId = '1';
       const body = {
         status: OrderStatus.IN_PREPARATION,
         transactionId: 'TXN-789',
-        orderId: 1,
-        amount: 100,
       };
 
-      await controller.updateOrderPayment(body);
+      await controller.updateOrderPayment(orderId, body);
 
       expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -179,16 +179,18 @@ describe('OrdersController', () => {
     });
 
     it('should handle null transaction ID', async () => {
+      const orderId = '1';
       const body = {
         status: OrderStatus.FAILED,
         transactionId: null,
-        orderId: 1,
-        amount: 100,
       };
 
-      await controller.updateOrderPayment(body);
+      await controller.updateOrderPayment(orderId, body);
 
-      expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith(body);
+      expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith({
+        orderId: 1,
+        ...body,
+      });
     });
   });
 

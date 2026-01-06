@@ -32,7 +32,6 @@ describe('UpdateOrderPaymentUseCase', () => {
         orderId: 1,
         status: OrderStatus.PAID,
         transactionId: 'TXN-123',
-        amount: 100,
       });
 
       expect(mockOrderRepository.getOrderById).toHaveBeenCalledWith(1);
@@ -48,7 +47,6 @@ describe('UpdateOrderPaymentUseCase', () => {
         orderId: 1,
         status: OrderStatus.PAID,
         transactionId: 'TXN-123',
-        amount: 100,
       });
 
       expect(mockProductGateway.sendToPreparation).toHaveBeenCalledTimes(1);
@@ -66,7 +64,6 @@ describe('UpdateOrderPaymentUseCase', () => {
           orderId: 999,
           status: OrderStatus.PAID,
           transactionId: 'TXN-123',
-          amount: 100,
         }),
       ).rejects.toThrow('Order not found');
 
@@ -86,7 +83,6 @@ describe('UpdateOrderPaymentUseCase', () => {
           orderId: 1,
           status: OrderStatus.PAID,
           transactionId: 'TXN-123',
-          amount: 100,
         }),
       ).rejects.toThrow('Database error');
     });
@@ -103,7 +99,6 @@ describe('UpdateOrderPaymentUseCase', () => {
           orderId: 1,
           status: OrderStatus.PAID,
           transactionId: 'TXN-123',
-          amount: 100,
         }),
       ).rejects.toThrow('Product gateway unavailable');
     });
