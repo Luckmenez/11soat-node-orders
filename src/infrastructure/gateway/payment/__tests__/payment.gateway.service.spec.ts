@@ -14,21 +14,24 @@ describe('PaymentGatewayService', () => {
       get: jest.fn().mockReturnValue('http://payment-service:3000'),
     } as any;
 
-    const mockPaymentResponse = {
-      data: {
-        id: 1,
-        urlPayment: 'https://payment.example.com/pay/123',
-        qrCodeBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAUA',
-        transactionId: 'txn_123456',
-      },
-      status: 200,
-      statusText: 'OK',
-      headers: {},
-      config: {} as any,
-    };
-
     mockHttpService = {
-      post: jest.fn().mockReturnValue(of(mockPaymentResponse)),
+      post: jest.fn().mockImplementation((url, data: any) => {
+        const mockPaymentResponse = {
+          data: {
+            id: data.orderId || 1,
+            urlPayment: `https://payment.example.com/pay/${data.orderId || 123}`,
+            qrCodeBase64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
+            qrCodeString: '00020101021226860014br.gov.bcb.pix',
+            transactionId: `txn_${data.orderId || 123456}`,
+            expirationDate: new Date(Date.now() + 30 * 60 * 1000),
+          },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        };
+        return of(mockPaymentResponse);
+      }),
       delete: jest.fn().mockReturnValue(of({ data: null, status: 204, statusText: 'No Content', headers: {}, config: {} as any })),
     } as any;
 

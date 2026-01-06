@@ -375,9 +375,9 @@ describe('Orders E2E Tests', () => {
     it('should accept different order statuses', async () => {
       const statuses = [
         OrderStatus.PAID,
-        OrderStatus.PREPARING,
-        OrderStatus.READY,
-        OrderStatus.COMPLETED,
+        OrderStatus.IN_PREPARATION,
+        OrderStatus.READY_TO_DELIVER,
+        OrderStatus.DONE,
       ];
 
       for (const status of statuses) {
@@ -497,7 +497,7 @@ describe('Orders E2E Tests', () => {
       await request(app.getHttpServer())
         .patch(`/orders/update-order-payment/${orderId}`)
         .send({
-          status: OrderStatus.PREPARING,
+          status: OrderStatus.IN_PREPARATION,
           transactionId: 'TXN-E2E-FLOW-123',
         })
         .expect(200);
@@ -506,7 +506,7 @@ describe('Orders E2E Tests', () => {
       await request(app.getHttpServer())
         .patch(`/orders/update-order-payment/${orderId}`)
         .send({
-          status: OrderStatus.READY,
+          status: OrderStatus.READY_TO_DELIVER,
           transactionId: 'TXN-E2E-FLOW-123',
         })
         .expect(200);
@@ -522,7 +522,7 @@ describe('Orders E2E Tests', () => {
       });
 
       expect(finalOrder).toBeDefined();
-      expect(finalOrder!.status).toBe(OrderStatus.READY);
+      expect(finalOrder!.status).toBe(OrderStatus.READY_TO_DELIVER);
       expect(finalOrder!.items).toHaveLength(1);
       expect(finalOrder!.items[0].customerItems).toHaveLength(1);
       expect(finalOrder!.observation).toBe('E2E test order');
