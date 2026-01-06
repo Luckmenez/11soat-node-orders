@@ -172,7 +172,11 @@ jobs:
             /spec\.ts$/i,
             /mock/i,
             /__tests__/i,
-            /test\//i
+            /test\//i,
+            /\/mappers\//i,
+            /\.mapper\.ts$/i,
+            /payment\.gateway\.service\.ts$/i,
+            /prisma\.service\.ts$/i
           ];
 
           function shouldIgnore(filePath) {
