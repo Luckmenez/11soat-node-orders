@@ -427,7 +427,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-per-file-report-${{ github.sha }}
-          path: coverage/
+          path: .
 
       - name: 🔍 Verify lcov.info exists
         run: |
