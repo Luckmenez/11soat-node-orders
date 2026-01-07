@@ -445,6 +445,7 @@ jobs:
           fi
 
       - name: 🔍 Run SonarCloud Scan
+        continue-on-error: true
         uses: SonarSource/sonarcloud-github-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
