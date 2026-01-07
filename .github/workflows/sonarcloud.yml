@@ -429,6 +429,21 @@ jobs:
           name: coverage-per-file-report-${{ github.sha }}
           path: coverage/
 
+      - name: 🔍 Verify lcov.info exists
+        run: |
+          echo "Checking if lcov.info exists..."
+          if [ -f "coverage/lcov.info" ]; then
+            echo "✅ lcov.info found"
+            echo "File size: $(wc -l < coverage/lcov.info) lines"
+            echo "First 10 lines:"
+            head -10 coverage/lcov.info
+          else
+            echo "❌ ERROR: lcov.info not found!"
+            echo "Contents of coverage directory:"
+            ls -la coverage/
+            exit 1
+          fi
+
       - name: 🔍 Run SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
