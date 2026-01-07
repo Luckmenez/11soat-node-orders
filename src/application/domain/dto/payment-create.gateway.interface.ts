@@ -8,6 +8,7 @@ export interface CreatePaymentDto {
 
 export interface PaymentDtoResponse {
   id: number;
+  orderId?: number;
   transactionId: string;
   status: string;
   amount: number;

@@ -52,8 +52,8 @@ describe('ProductGateway', () => {
       await gateway.sendToPreparation(orderProductDto);
 
       expect(mockHttpService.post).toHaveBeenCalledWith(
-        'http://products-service:3000/validate-products',
-        { products: orderProductDto },
+        'http://products-service:3000/orders',
+        orderProductDto,
       );
     });
 
@@ -83,8 +83,8 @@ describe('ProductGateway', () => {
       await gateway2.sendToPreparation(orderProductDto);
 
       expect(mockHttpService.post).toHaveBeenCalledWith(
-        `${customUrl}/validate-products`,
-        { products: orderProductDto },
+        `${customUrl}/orders`,
+        orderProductDto,
       );
     });
 
@@ -124,8 +124,8 @@ describe('ProductGateway', () => {
       await gateway.sendToPreparation(orderProductDto);
 
       expect(mockHttpService.post).toHaveBeenCalledWith(
-        'http://products-service:3000/validate-products',
-        { products: orderProductDto },
+        'http://products-service:3000/orders',
+        orderProductDto,
       );
       expect(mockHttpService.post).toHaveBeenCalledTimes(1);
     });
@@ -177,7 +177,7 @@ describe('ProductGateway', () => {
       await gateway.sendToPreparation(orderProductDto);
 
       const callArgs = mockHttpService.post.mock.calls[0];
-      expect(callArgs[0]).toContain('/validate-products');
+      expect(callArgs[0]).toContain('/orders');
     });
 
     it('should handle empty items array', async () => {
@@ -201,8 +201,8 @@ describe('ProductGateway', () => {
       await gateway.sendToPreparation(orderProductDto);
 
       expect(mockHttpService.post).toHaveBeenCalledWith(
-        'http://products-service:3000/validate-products',
-        { products: orderProductDto },
+        'http://products-service:3000/orders',
+        orderProductDto,
       );
     });
 
@@ -258,8 +258,7 @@ describe('ProductGateway', () => {
       await gateway.sendToPreparation(orderProductDto);
 
       const payload = mockHttpService.post.mock.calls[0][1] as any;
-      expect(payload).toHaveProperty('products');
-      expect(payload.products).toEqual(orderProductDto);
+      expect(payload).toEqual(orderProductDto);
     });
 
     it('should handle random client orders', async () => {

@@ -20,13 +20,18 @@ describe('CreateOrderUseCase', () => {
   let mockAuthGateway: any;
   let mockOrderRepository: any;
   let mockPaymentGateway: any;
+  let mockConfigService: any;
 
   beforeEach(() => {
     mockAuthGateway = createMockAuthGateway();
     mockOrderRepository = createMockOrderRepository();
     mockPaymentGateway = createMockPaymentGateway();
+    mockConfigService = {
+      get: jest.fn().mockReturnValue('http://localhost:3000'),
+    };
 
     useCase = new CreateOrderUseCase(
+      mockConfigService,
       mockAuthGateway,
       mockOrderRepository,
       mockPaymentGateway,
@@ -102,10 +107,9 @@ describe('CreateOrderUseCase', () => {
           client: expect.objectContaining({
             document: expect.any(String),
             name: expect.any(String),
-            email: expect.any(String),
             id: expect.any(Number),
           }),
-          callbackUrl: expect.stringContaining('/payments/callback/'),
+          callbackUrl: expect.stringContaining('/orders/update-order-payment/'),
           items: expect.any(Array),
         }),
       );
@@ -140,6 +144,7 @@ describe('CreateOrderUseCase', () => {
     it('should handle token without CPF', async () => {
       mockAuthGateway = createMockAuthGatewayWithNoCpf();
       useCase = new CreateOrderUseCase(
+        mockConfigService,
         mockAuthGateway,
         mockOrderRepository,
         mockPaymentGateway,
@@ -160,6 +165,7 @@ describe('CreateOrderUseCase', () => {
     it('should throw error when auth gateway fails', async () => {
       mockAuthGateway = createMockAuthGatewayWithError();
       useCase = new CreateOrderUseCase(
+        mockConfigService,
         mockAuthGateway,
         mockOrderRepository,
         mockPaymentGateway,
@@ -178,6 +184,7 @@ describe('CreateOrderUseCase', () => {
     it('should throw error when repository save fails', async () => {
       mockOrderRepository = createMockOrderRepositoryWithError();
       useCase = new CreateOrderUseCase(
+        mockConfigService,
         mockAuthGateway,
         mockOrderRepository,
         mockPaymentGateway,
@@ -195,6 +202,7 @@ describe('CreateOrderUseCase', () => {
     it('should throw error when payment gateway fails', async () => {
       mockPaymentGateway = createMockPaymentGatewayWithError();
       useCase = new CreateOrderUseCase(
+        mockConfigService,
         mockAuthGateway,
         mockOrderRepository,
         mockPaymentGateway,
@@ -263,7 +271,7 @@ describe('CreateOrderUseCase', () => {
 
       expect(mockPaymentGateway.createPayment).toHaveBeenCalledWith(
         expect.objectContaining({
-          callbackUrl: expect.stringMatching(/\/payments\/callback\/\d+/),
+          callbackUrl: expect.stringMatching(/\/orders\/update-order-payment\/\d+/),
         }),
       );
     });

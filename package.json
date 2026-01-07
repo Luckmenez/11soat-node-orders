@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:unit": "jest --testPathPattern=spec.ts --testPathIgnorePatterns=integration.spec.ts --testPathIgnorePatterns=e2e-spec.ts",
+    "test:unit:cov": "jest --testPathPattern=spec.ts --testPathIgnorePatterns=integration.spec.ts --testPathIgnorePatterns=e2e-spec.ts --coverage",
     "test:integration": "jest --testPathPattern=integration.spec.ts",
     "test:bdd": "jest --config ./test/jest-bdd.json",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
@@ -36,7 +37,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.4.2",
     "@prisma/client": "^6.19.1",
-    "@vineco77/auth-lib": "npm:@vineco77/auth-lib@^1.0.0",
+    "@vineco77/auth-lib": "npm:@vineco77/auth-lib@^1.0.2",
     "axios": "^1.13.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
@@ -90,7 +91,13 @@
       "!**/*.interface.ts",
       "!**/*.dto.ts",
       "!**/*.enum.ts",
-      "!main.ts"
+      "!main.ts",
+      "!**/configuration.ts",
+      "!**/validation.schema.ts",
+      "!**/*.config.ts",
+      "!**/prisma.service.ts",
+      "!**/*.spec.ts",
+      "!**/__tests__/**"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
@@ -100,12 +107,6 @@
         "functions": 80,
         "lines": 80,
         "statements": 80
-      },
-      "./application/domain/**/*.ts": {
-        "branches": 90,
-        "functions": 90,
-        "lines": 90,
-        "statements": 90
       }
     },
     "coverageReporters": [

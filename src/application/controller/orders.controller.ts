@@ -58,10 +58,15 @@ export class OrdersController {
   }
 
   @ApiUpdateOrderPayment()
-  @Patch('update-order-payment/')
-  updateOrderPayment(@Body() updateOrderPaymentBody: UpdateOrderPaymentDto) {
-    console.log('UpdateOrderPaymentDto:', updateOrderPaymentBody);
-    return this.updateOrderPaymentUseCase.execute(updateOrderPaymentBody);
+  @Patch('update-order-payment/:orderId')
+  updateOrderPayment(
+    @Param('orderId') orderId: string,
+    @Body() updateOrderPaymentBody: Omit<UpdateOrderPaymentDto, 'orderId'>,
+  ) {
+    return this.updateOrderPaymentUseCase.execute({
+      ...updateOrderPaymentBody,
+      orderId: Number(orderId),
+    });
   }
 
   @ApiDeleteOrder()

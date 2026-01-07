@@ -7,24 +7,26 @@ import { OrderRepositoryPort } from '../ports/output/order.repository.port';
 import { OrderStatus } from 'src/application/value-objects/order-status.enum';
 import { PaymentGatewayPort } from '../ports/output/payment.gateway.port';
 import { PaymentDtoResponse } from '../domain/dto/payment-create.gateway.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CreateOrderUseCase implements CreateOrderUseCasePort {
   constructor(
+    private readonly configService: ConfigService,
     @Inject('AuthGatewayPort')
     private readonly authGateway: AuthGatewayPort,
     @Inject('OrderRepositoryPort')
     private readonly orderRepository: OrderRepositoryPort,
     @Inject('PaymentGatewayPort')
     private readonly paymentGateway: PaymentGatewayPort,
-  ) {}
+  ) {
+    this.configService = configService.get('ORDER_GATEWAY_URL');
+  }
   async execute(
     orderData: CreateOrderDto,
     token: string,
   ): Promise<PaymentDtoResponse> {
     const tokenPayload = await this.authGateway.decodeToken(token);
-
-    console.log('Token payload:', tokenPayload);
 
     const orderEntity = OrderEntity.create({
       id: null,
@@ -35,21 +37,22 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
       isRandomClient: tokenPayload?.sub ? true : false,
       codeClientRandom: orderData.codeClientRandom,
       observation: orderData.observation,
-      clientId: tokenPayload.sub,
+      clientId: tokenPayload?.sub || null,
     });
 
     const createdOrder = await this.orderRepository.save(orderEntity);
 
     const paymentData = await this.paymentGateway.createPayment({
       orderId: createdOrder.id,
+      description: `Pagamento do pedido #${createdOrder.id}`,
       amount: createdOrder.amount,
       client: {
-        id: Number(tokenPayload.sub),
-        name: tokenPayload.name,
-        email: 'mock_enquanto_o_vinny_arruma@gmail.com',
-        document: tokenPayload.cpf,
+        id: Number(tokenPayload?.sub),
+        name: tokenPayload?.name,
+        email: tokenPayload?.email,
+        document: tokenPayload?.cpf,
       },
-      callbackUrl: `https://yourdomain.com/payments/callback/${createdOrder.id}`,
+      callbackUrl: `${this.configService}/orders/update-order-payment/${createdOrder.id}`,
       items: createdOrder.items.map((item) => ({
         id: item.productId,
         title: item.title,
@@ -60,8 +63,9 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
       })),
     });
 
-    console.log('Payment data received:', paymentData);
-
-    return paymentData;
+    return {
+      ...paymentData,
+      orderId: createdOrder.id,
+    };
   }
 }
