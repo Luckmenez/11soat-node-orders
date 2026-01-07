@@ -60,3 +60,17 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # SonarCloud
 .scannerwork/
 .sonar/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.tfstate.lock.info
+terraform/terraform.tfvars
+terraform/override.tf
+terraform/override.tf.json
+terraform/*_override.tf
+terraform/*_override.tf.json
+terraform/.terraformrc
+terraform/terraform.rc
