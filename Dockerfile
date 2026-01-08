@@ -7,7 +7,7 @@ RUN apk add --no-cache openssl
 
 # Copy package files
 COPY package*.json ./
-COPY prisma ./prisma/
+COPY src/infrastructure/persistence/prisma ./src/infrastructure/persistence/prisma/
 
 # Development dependencies stage
 FROM base AS deps
@@ -38,7 +38,7 @@ RUN apk add --no-cache openssl curl
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
-COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/src/infrastructure/persistence/prisma ./src/infrastructure/persistence/prisma
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
