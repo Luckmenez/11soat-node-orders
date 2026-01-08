@@ -31,8 +31,8 @@ RUN npx prisma generate --schema=./src/infrastructure/persistence/prisma/schema.
 # Build application
 RUN npm run build
 
-# Remove dev dependencies and install only production
-RUN npm ci --only=production && npm cache clean --force
+# Remove dev dependencies (keep only production dependencies)
+RUN npm prune --production && npm cache clean --force
 
 # Production stage
 FROM node:20-alpine AS production
