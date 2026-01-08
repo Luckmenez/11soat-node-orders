@@ -25,6 +25,5 @@ test
 .sonar
 sonar-project.properties
 jest.config.js
-tsconfig.json
 .eslintrc.js
 .prettierrc
