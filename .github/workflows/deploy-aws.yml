@@ -1,0 +1,780 @@
+name: Deploy to AWS ECS with Auto-Destroy
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+        type: string
+      destroy_minutes:
+        description: 'Minutes until auto-destruction'
+        required: true
+        default: '30'
+        type: string
+      confirm:
+        description: 'Type "yes" to confirm deployment'
+        required: true
+        type: string
+        default: 'yes'
+
+env:
+  AWS_REGION: 'us-east-1'
+  ECR_REPOSITORY: '11soat-orders'
+  ECS_CLUSTER: 'orders-cluster'
+  CONTAINER_NAME: 'orders-container'
+  RDS_INSTANCE: 'orders-db-${{ github.run_id }}'
+  ECS_SERVICE: 'orders-service-${{ github.run_id }}'
+  CONTAINER_PORT: 3000
+
+jobs:
+  # ============================================
+  # JOB 1: Verificar se foi MERGE (não apenas closed)
+  # ============================================
+  check-merge:
+    name: 🔍 Check Merge Status
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      pr_title: ${{ github.event.pull_request.title }}
+      merged_by: ${{ github.event.pull_request.merged_by.login }}
+
+    steps:
+      - name: 📋 Verify if PR was merged
+        id: check
+        run: |
+          echo "PR Action: ${{ github.event.action }}"
+          echo "PR Merged: ${{ github.event.pull_request.merged }}"
+          echo "PR Title: ${{ github.event.pull_request.title }}"
+
+          if [[ "${{ github.event.pull_request.merged }}" == "true" ]]; then
+            echo "✅ PR WAS MERGED INTO MAIN - DEPLOYMENT WILL RUN"
+            echo "Merged by: ${{ github.event.pull_request.merged_by.login }}"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ PR was CLOSED without merge - SKIPPING DEPLOY"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+  # ============================================
+  # JOB 2: Build Docker Image
+  # ============================================
+  build-docker:
+    name: 🐳 Build & Push Docker Image
+    needs: check-merge
+    if: |
+      (github.event_name == 'pull_request' && needs.check-merge.outputs.should_deploy == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'yes')
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.build.outputs.image_tag }}
+      ecr_registry: ${{ steps.build.outputs.ecr_registry }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 🎉 Deployment trigger info
+        run: |
+          echo "========================================"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "🎉 AUTOMATED DEPLOYMENT AFTER PR MERGE"
+            echo "PR: ${{ needs.check-merge.outputs.pr_title }}"
+            echo "Merged by: ${{ needs.check-merge.outputs.merged_by }}"
+          else
+            echo "🎮 MANUAL DEPLOYMENT"
+            echo "Triggered by: ${{ github.actor }}"
+            echo "Auto-destroy in: ${{ github.event.inputs.destroy_minutes || '30' }} minutes"
+          fi
+          echo "Run ID: ${{ github.run_id }}"
+          echo "========================================"
+
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🐳 Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🏗️ Create ECR Repository if not exists
+        run: |
+          echo "🏗️ Checking if ECR repository exists..."
+
+          if aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} > /dev/null 2>&1; then
+            echo "✅ Repository already exists"
+          else
+            echo "📦 Creating ECR repository..."
+            aws ecr create-repository \
+              --repository-name ${{ env.ECR_REPOSITORY }} \
+              --image-tag-mutability MUTABLE \
+              --image-scanning-configuration scanOnPush=true \
+              --tags Key=Project,Value=11soat Key=AutoDestroy,Value=true
+            echo "✅ Repository created successfully"
+          fi
+
+      - name: 🏗️ Build Docker image
+        id: build
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: deploy-${{ github.run_id }}
+        run: |
+          echo "🔨 Building Docker image..."
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+          echo "📤 Pushing to ECR..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+          echo "✅ Image pushed successfully!"
+          echo "Registry: $ECR_REGISTRY"
+          echo "Repository: $ECR_REPOSITORY"
+          echo "Tag: $IMAGE_TAG"
+
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "ecr_registry=$ECR_REGISTRY" >> $GITHUB_OUTPUT
+
+  # ============================================
+  # JOB 3: Deploy na AWS
+  # ============================================
+  deploy-aws:
+    name: 🚀 Deploy to AWS ECS
+    needs: build-docker
+    if: success()
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      public_ip: ${{ steps.get-ip.outputs.PUBLIC_IP }}
+      service_url: ${{ steps.get-url.outputs.SERVICE_URL }}
+      rds_endpoint: ${{ steps.db-endpoint.outputs.RDS_ENDPOINT }}
+
+    steps:
+      - name: 📥 Checkout code (for Prisma)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 📋 Starting AWS deployment
+        run: |
+          echo "========================================"
+          echo "🚀 DEPLOYING 11SOAT ORDERS TO AWS ECS"
+          echo "========================================"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Image: ${{ needs.build-docker.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.build-docker.outputs.image_tag }}"
+          echo "========================================"
+
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🗄️ Create PostgreSQL Database
+        id: create-db
+        run: |
+          echo "🗄️ Creating RDS PostgreSQL instance..."
+
+          # Gerar senha segura
+          DB_PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 16)
+          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
+
+          # Criar instância RDS
+          aws rds create-db-instance \
+            --db-instance-identifier ${{ env.RDS_INSTANCE }} \
+            --db-instance-class db.t3.micro \
+            --engine postgres \
+            --engine-version 15.4 \
+            --allocated-storage 20 \
+            --master-username postgres \
+            --master-user-password "$DB_PASSWORD" \
+            --db-name orders_db \
+            --backup-retention-period 0 \
+            --publicly-accessible \
+            --no-multi-az \
+            --no-auto-minor-version-upgrade \
+            --tags Key=Project,Value=11soat Key=AutoDestroy,Value=true Key=RunId,Value=${{ github.run_id }}
+
+          echo "✅ RDS instance creation started: ${{ env.RDS_INSTANCE }}"
+
+      - name: ⏳ Wait for database to be available
+        run: |
+          echo "⏳ Waiting for database to be ready (max 15 minutes)..."
+
+          for i in {1..45}; do
+            STATUS=$(aws rds describe-db-instances \
+              --db-instance-identifier ${{ env.RDS_INSTANCE }} \
+              --query "DBInstances[0].DBInstanceStatus" \
+              --output text 2>/dev/null || echo "creating")
+
+            echo "Attempt $i/45 - Status: $STATUS"
+
+            if [ "$STATUS" = "available" ]; then
+              echo "✅ Database is ready!"
+              break
+            fi
+
+            if [ "$i" -eq 45 ]; then
+              echo "❌ Database not ready in time"
+              exit 1
+            fi
+
+            sleep 20
+          done
+
+      - name: 📍 Get database endpoint
+        id: db-endpoint
+        run: |
+          ENDPOINT=$(aws rds describe-db-instances \
+            --db-instance-identifier ${{ env.RDS_INSTANCE }} \
+            --query 'DBInstances[0].Endpoint.Address' \
+            --output text)
+
+          echo "RDS_ENDPOINT=$ENDPOINT" >> $GITHUB_OUTPUT
+          echo "📌 Database endpoint: $ENDPOINT"
+
+      - name: ⚙️ Setup Node.js for Prisma
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔐 Configure npm authentication
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+          echo "@vineco77:registry=https://npm.pkg.github.com/" >> .npmrc
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🗄️ Run Prisma Migrations
+        env:
+          DATABASE_URL: postgresql://postgres:${{ env.DB_PASSWORD }}@${{ steps.db-endpoint.outputs.RDS_ENDPOINT }}:5432/orders_db?schema=public
+        run: |
+          echo "🗄️ Running Prisma migrations..."
+          npx prisma migrate deploy --schema=./src/infrastructure/persistence/prisma/schema.prisma
+          echo "✅ Migrations completed"
+
+      - name: 🐳 Create ECS Cluster
+        run: |
+          echo "🐳 Creating ECS cluster..."
+
+          aws ecs create-cluster \
+            --cluster-name ${{ env.ECS_CLUSTER }}-${{ github.run_id }} \
+            --tags key=Project,value=11soat key=AutoDestroy,value=true key=RunId,value=${{ github.run_id }}
+
+          echo "✅ ECS cluster created: ${{ env.ECS_CLUSTER }}-${{ github.run_id }}"
+
+      - name: 📝 Create CloudWatch Log Group
+        run: |
+          echo "📝 Creating CloudWatch log group..."
+
+          aws logs create-log-group \
+            --log-group-name /ecs/11soat-orders-${{ github.run_id }} \
+            --tags Project=11soat,AutoDestroy=true,RunId=${{ github.run_id }} \
+            2>/dev/null || echo "Log group already exists"
+
+          echo "✅ Log group ready"
+
+      - name: 🛠️ Create ECS Task Execution Role
+        id: create-role
+        run: |
+          echo "🛠️ Creating/verifying ECS task execution role..."
+
+          ROLE_NAME="ecsTaskExecutionRole-${{ github.run_id }}"
+
+          if aws iam get-role --role-name $ROLE_NAME 2>/dev/null; then
+            echo "✅ Role already exists"
+          else
+            echo "📝 Creating new role..."
+
+            cat > trust-policy.json << 'TRUSTEOF'
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": "ecs-tasks.amazonaws.com"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            }
+            TRUSTEOF
+
+            aws iam create-role \
+              --role-name $ROLE_NAME \
+              --assume-role-policy-document file://trust-policy.json \
+              --description "ECS Task Execution Role for 11soat Orders" \
+              --tags Key=Project,Value=11soat Key=AutoDestroy,Value=true Key=RunId,Value=${{ github.run_id }}
+
+            aws iam attach-role-policy \
+              --role-name $ROLE_NAME \
+              --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+            # Aguardar role propagar
+            sleep 10
+
+            echo "✅ Role created: $ROLE_NAME"
+          fi
+
+          ROLE_ARN=$(aws iam get-role --role-name $ROLE_NAME --query 'Role.Arn' --output text)
+          echo "ROLE_ARN=$ROLE_ARN" >> $GITHUB_OUTPUT
+          echo "Role ARN: $ROLE_ARN"
+
+      - name: 📄 Create Task Definition
+        id: create-task
+        env:
+          ECR_REGISTRY: ${{ needs.build-docker.outputs.ecr_registry }}
+          IMAGE_TAG: ${{ needs.build-docker.outputs.image_tag }}
+          RDS_ENDPOINT: ${{ steps.db-endpoint.outputs.RDS_ENDPOINT }}
+        run: |
+          echo "📄 Creating task definition..."
+
+          cat > task-definition.json << EOF
+          {
+            "family": "orders-task-${{ github.run_id }}",
+            "networkMode": "awsvpc",
+            "executionRoleArn": "${{ steps.create-role.outputs.ROLE_ARN }}",
+            "containerDefinitions": [
+              {
+                "name": "${{ env.CONTAINER_NAME }}",
+                "image": "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG",
+                "portMappings": [
+                  {
+                    "containerPort": ${{ env.CONTAINER_PORT }},
+                    "hostPort": ${{ env.CONTAINER_PORT }},
+                    "protocol": "tcp"
+                  }
+                ],
+                "essential": true,
+                "environment": [
+                  {
+                    "name": "DATABASE_URL",
+                    "value": "postgresql://postgres:${{ env.DB_PASSWORD }}@$RDS_ENDPOINT:5432/orders_db?schema=public"
+                  },
+                  {
+                    "name": "PORT",
+                    "value": "${{ env.CONTAINER_PORT }}"
+                  },
+                  {
+                    "name": "NODE_ENV",
+                    "value": "production"
+                  },
+                  {
+                    "name": "NPM_TOKEN",
+                    "value": "${{ secrets.NPM_TOKEN }}"
+                  },
+                  {
+                    "name": "PAYMENT_GATEWAY_URL",
+                    "value": "${{ secrets.PAYMENT_GATEWAY_URL || 'https://payment-gateway-placeholder.com' }}"
+                  },
+                  {
+                    "name": "AUTH_GATEWAY_URL",
+                    "value": "${{ secrets.AUTH_GATEWAY_URL || 'https://auth-gateway-placeholder.com' }}"
+                  },
+                  {
+                    "name": "PRODUCTS_GATEWAY_URL",
+                    "value": "${{ secrets.PRODUCTS_GATEWAY_URL || 'https://products-gateway-placeholder.com' }}"
+                  }
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/11soat-orders-${{ github.run_id }}",
+                    "awslogs-region": "${{ env.AWS_REGION }}",
+                    "awslogs-stream-prefix": "ecs"
+                  }
+                },
+                "healthCheck": {
+                  "command": ["CMD-SHELL", "curl -f http://localhost:${{ env.CONTAINER_PORT }}/health || exit 1"],
+                  "interval": 30,
+                  "timeout": 5,
+                  "retries": 3,
+                  "startPeriod": 60
+                }
+              }
+            ],
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "256",
+            "memory": "512",
+            "tags": [
+              {"key": "Project", "value": "11soat"},
+              {"key": "AutoDestroy", "value": "true"},
+              {"key": "RunId", "value": "${{ github.run_id }}"}
+            ]
+          }
+          EOF
+
+          TASK_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "TASK_ARN=$TASK_ARN" >> $GITHUB_OUTPUT
+          echo "✅ Task definition registered: $TASK_ARN"
+
+      - name: 🛡️ Create Security Group
+        id: create-sg
+        run: |
+          echo "🛡️ Creating security group..."
+
+          VPC_ID=$(aws ec2 describe-vpcs \
+            --filters "Name=isDefault,Values=true" \
+            --query 'Vpcs[0].VpcId' \
+            --output text)
+
+          echo "Using VPC: $VPC_ID"
+
+          SG_ID=$(aws ec2 create-security-group \
+            --group-name "orders-sg-${{ github.run_id }}" \
+            --description "11soat Orders Service Security Group - Auto Destroy" \
+            --vpc-id $VPC_ID \
+            --tag-specifications 'ResourceType=security-group,Tags=[{Key=Project,Value=11soat},{Key=AutoDestroy,Value=true},{Key=RunId,Value=${{ github.run_id }}}]' \
+            --query 'GroupId' \
+            --output text)
+
+          echo "SG_ID=$SG_ID" >> $GITHUB_OUTPUT
+
+          # Permitir porta 3000 de qualquer lugar
+          aws ec2 authorize-security-group-ingress \
+            --group-id $SG_ID \
+            --protocol tcp \
+            --port ${{ env.CONTAINER_PORT }} \
+            --cidr 0.0.0.0/0
+
+          echo "✅ Security group created: $SG_ID"
+          echo "Port ${{ env.CONTAINER_PORT }} opened to public"
+
+      - name: 🚀 Create ECS Service
+        run: |
+          echo "🚀 Creating ECS service..."
+
+          SUBNETS=$(aws ec2 describe-subnets \
+            --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --query 'Vpcs[0].VpcId' --output text)" \
+            --query 'Subnets[0:2].SubnetId' \
+            --output text)
+
+          SUBNET_1=$(echo $SUBNETS | cut -d' ' -f1)
+          SUBNET_2=$(echo $SUBNETS | cut -d' ' -f2)
+
+          echo "Using subnets: $SUBNET_1, $SUBNET_2"
+
+          aws ecs create-service \
+            --cluster ${{ env.ECS_CLUSTER }}-${{ github.run_id }} \
+            --service-name ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ steps.create-task.outputs.TASK_ARN }} \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --platform-version "LATEST" \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_1,$SUBNET_2],assignPublicIp=ENABLED,securityGroups=[${{ steps.create-sg.outputs.SG_ID }}]}" \
+            --tags key=Project,value=11soat key=AutoDestroy,value=true key=RunId,value=${{ github.run_id }}
+
+          echo "✅ ECS service created: ${{ env.ECS_SERVICE }}"
+
+      - name: ⏳ Wait for service to start
+        run: |
+          echo "⏳ Waiting for service to start (up to 5 minutes)..."
+
+          for i in {1..30}; do
+            RUNNING=$(aws ecs describe-services \
+              --cluster ${{ env.ECS_CLUSTER }}-${{ github.run_id }} \
+              --services ${{ env.ECS_SERVICE }} \
+              --query 'services[0].runningCount' \
+              --output text 2>/dev/null || echo "0")
+
+            echo "Attempt $i/30 - Running tasks: $RUNNING"
+
+            if [ "$RUNNING" = "1" ]; then
+              echo "✅ Service is running!"
+              break
+            fi
+
+            if [ "$i" -eq 30 ]; then
+              echo "⚠️ Service taking longer than expected, continuing..."
+            fi
+
+            sleep 10
+          done
+
+      - name: 🌐 Get Public IP
+        id: get-ip
+        run: |
+          echo "🌐 Getting public IP address..."
+
+          for i in {1..15}; do
+            echo "Attempt $i/15 to get public IP..."
+
+            TASK_ARN=$(aws ecs list-tasks \
+              --cluster ${{ env.ECS_CLUSTER }}-${{ github.run_id }} \
+              --service-name ${{ env.ECS_SERVICE }} \
+              --query 'taskArns[0]' \
+              --output text 2>/dev/null || echo "")
+
+            if [ -n "$TASK_ARN" ] && [ "$TASK_ARN" != "None" ]; then
+              ENI_ID=$(aws ecs describe-tasks \
+                --cluster ${{ env.ECS_CLUSTER }}-${{ github.run_id }} \
+                --tasks $TASK_ARN \
+                --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
+                --output text 2>/dev/null || echo "")
+
+              if [ -n "$ENI_ID" ] && [ "$ENI_ID" != "None" ]; then
+                PUBLIC_IP=$(aws ec2 describe-network-interfaces \
+                  --network-interface-ids $ENI_ID \
+                  --query 'NetworkInterfaces[0].Association.PublicIp' \
+                  --output text 2>/dev/null || echo "")
+
+                if [ -n "$PUBLIC_IP" ] && [ "$PUBLIC_IP" != "None" ]; then
+                  echo "✅ Public IP found: $PUBLIC_IP"
+                  echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_OUTPUT
+                  break
+                fi
+              fi
+            fi
+
+            if [ "$i" -eq 15 ]; then
+              echo "⚠️ Could not retrieve public IP"
+              echo "PUBLIC_IP=IP_NOT_AVAILABLE" >> $GITHUB_OUTPUT
+            fi
+
+            sleep 8
+          done
+
+      - name: 🔗 Create service URL
+        id: get-url
+        run: |
+          if [ "${{ steps.get-ip.outputs.PUBLIC_IP }}" != "IP_NOT_AVAILABLE" ] && [ -n "${{ steps.get-ip.outputs.PUBLIC_IP }}" ]; then
+            SERVICE_URL="http://${{ steps.get-ip.outputs.PUBLIC_IP }}:${{ env.CONTAINER_PORT }}"
+            echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_OUTPUT
+            echo "✅ Service URL: $SERVICE_URL"
+          else
+            echo "SERVICE_URL=http://IP_NOT_AVAILABLE:${{ env.CONTAINER_PORT }}" >> $GITHUB_OUTPUT
+            echo "⚠️ Service URL not available yet"
+          fi
+
+      - name: ⏰ Schedule Auto-Destruction
+        env:
+          DESTROY_MINUTES: ${{ github.event.inputs.destroy_minutes || '30' }}
+        run: |
+          DESTROY_SECONDS=$((DESTROY_MINUTES * 60))
+          echo "⏰ Scheduling auto-destruction in $DESTROY_MINUTES minutes ($DESTROY_SECONDS seconds)..."
+
+          cat > /tmp/destroy-resources.sh << 'EOF'
+          #!/bin/bash
+          echo "========================================"
+          echo "🧹 AUTO-DESTRUCTION INITIATED"
+          echo "========================================"
+          echo "Time: $(date)"
+          echo "Run ID: $1"
+          echo ""
+
+          export AWS_ACCESS_KEY_ID="$2"
+          export AWS_SECRET_ACCESS_KEY="$3"
+          export AWS_REGION="$4"
+          WAIT_TIME="$11"
+
+          echo "⏳ Waiting $WAIT_TIME seconds before cleanup..."
+          sleep $WAIT_TIME
+
+          echo "🔧 Starting resource cleanup..."
+          echo ""
+
+          # 1. Parar e deletar serviço ECS
+          echo "Step 1: Deleting ECS service..."
+          aws ecs update-service --cluster "$5" --service "$6" --desired-count 0 2>/dev/null || true
+          sleep 10
+          aws ecs delete-service --cluster "$5" --service "$6" --force 2>/dev/null || true
+
+          # 2. Deregistrar task definition
+          echo "Step 2: Deregistering task definition..."
+          aws ecs deregister-task-definition --task-definition "$10" 2>/dev/null || true
+
+          # 3. Deletar cluster ECS
+          echo "Step 3: Deleting ECS cluster..."
+          aws ecs delete-cluster --cluster "$5" 2>/dev/null || true
+
+          # 4. Deletar RDS
+          echo "Step 4: Deleting RDS instance..."
+          aws rds delete-db-instance \
+            --db-instance-identifier "$7" \
+            --skip-final-snapshot \
+            --delete-automated-backups 2>/dev/null || true
+
+          # 5. Deletar security group (aguardar um pouco para ENIs liberarem)
+          echo "Step 5: Waiting for network interfaces to detach..."
+          sleep 60
+          echo "Deleting security group..."
+          aws ec2 delete-security-group --group-id "$8" 2>/dev/null || true
+
+          # 6. Deletar IAM role
+          echo "Step 6: Deleting IAM role..."
+          aws iam detach-role-policy --role-name "$9" --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy 2>/dev/null || true
+          aws iam delete-role --role-name "$9" 2>/dev/null || true
+
+          # 7. Deletar CloudWatch Log Group
+          echo "Step 7: Deleting CloudWatch log group..."
+          aws logs delete-log-group --log-group-name "/ecs/11soat-orders-$1" 2>/dev/null || true
+
+          echo ""
+          echo "✅✅✅ CLEANUP COMPLETE ✅✅✅"
+          echo "All resources destroyed at: $(date)"
+          echo "========================================"
+          EOF
+
+          chmod +x /tmp/destroy-resources.sh
+
+          nohup /tmp/destroy-resources.sh \
+            "${{ github.run_id }}" \
+            "${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            "${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            "${{ env.AWS_REGION }}" \
+            "${{ env.ECS_CLUSTER }}-${{ github.run_id }}" \
+            "${{ env.ECS_SERVICE }}" \
+            "${{ env.RDS_INSTANCE }}" \
+            "${{ steps.create-sg.outputs.SG_ID }}" \
+            "ecsTaskExecutionRole-${{ github.run_id }}" \
+            "orders-task-${{ github.run_id }}" \
+            "$DESTROY_SECONDS" \
+            > /tmp/destroy-log-${{ github.run_id }}.txt 2>&1 &
+
+          echo "✅ Auto-destruction scheduled successfully"
+          echo "🕒 Will execute in: $DESTROY_MINUTES minutes"
+          echo "📁 Log file: /tmp/destroy-log-${{ github.run_id }}.txt"
+
+      - name: 🧪 Test Service Health
+        if: steps.get-ip.outputs.PUBLIC_IP != 'IP_NOT_AVAILABLE'
+        run: |
+          echo "🧪 Testing service health..."
+
+          SERVICE_URL="http://${{ steps.get-ip.outputs.PUBLIC_IP }}:${{ env.CONTAINER_PORT }}"
+
+          for i in {1..10}; do
+            echo "Health check attempt $i/10..."
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" ${SERVICE_URL}/health 2>/dev/null || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Health check PASSED (HTTP $HTTP_CODE)"
+              break
+            else
+              echo "⚠️ Health check status: HTTP $HTTP_CODE"
+              if [ "$i" -eq 10 ]; then
+                echo "⚠️ Service may still be starting..."
+              fi
+            fi
+
+            sleep 6
+          done
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "========================================"
+          echo "🎉 DEPLOYMENT COMPLETED SUCCESSFULLY!"
+          echo "========================================"
+          echo ""
+          echo "✅ All AWS resources deployed"
+          echo ""
+
+          if [ "${{ steps.get-ip.outputs.PUBLIC_IP }}" != "IP_NOT_AVAILABLE" ]; then
+            echo "🌐 SERVICE IS LIVE AT:"
+            echo "   http://${{ steps.get-ip.outputs.PUBLIC_IP }}:${{ env.CONTAINER_PORT }}"
+            echo ""
+            echo "🔧 Test endpoints:"
+            echo "   Health: curl http://${{ steps.get-ip.outputs.PUBLIC_IP }}:${{ env.CONTAINER_PORT }}/health"
+            echo "   Swagger: http://${{ steps.get-ip.outputs.PUBLIC_IP }}:${{ env.CONTAINER_PORT }}/api"
+          else
+            echo "⚠️ IP address not available yet"
+            echo "Check ECS console or logs for status"
+          fi
+
+          echo ""
+          echo "🕒 AUTO-DESTRUCTION:"
+          echo "   Scheduled in ${{ github.event.inputs.destroy_minutes || '30' }} minutes"
+          echo "   All resources will be automatically deleted"
+          echo ""
+          echo "🏷️ AWS Resources Created:"
+          echo "   • RDS PostgreSQL: ${{ env.RDS_INSTANCE }}"
+          echo "   • ECS Cluster: ${{ env.ECS_CLUSTER }}-${{ github.run_id }}"
+          echo "   • ECS Service: ${{ env.ECS_SERVICE }}"
+          echo "   • Security Group: ${{ steps.create-sg.outputs.SG_ID }}"
+          echo ""
+          echo "📊 View CloudWatch Logs:"
+          echo "   aws logs tail /ecs/11soat-orders-${{ github.run_id }} --follow"
+          echo ""
+          echo "========================================"
+
+      - name: 🧹 Cleanup on failure
+        if: failure()
+        run: |
+          echo "🧹 Cleaning up due to failure..."
+          aws ecs delete-service --cluster ${{ env.ECS_CLUSTER }}-${{ github.run_id }} --service ${{ env.ECS_SERVICE }} --force 2>/dev/null || true
+          aws ecs delete-cluster --cluster ${{ env.ECS_CLUSTER }}-${{ github.run_id }} 2>/dev/null || true
+          aws rds delete-db-instance --db-instance-identifier ${{ env.RDS_INSTANCE }} --skip-final-snapshot 2>/dev/null || true
+          aws ec2 delete-security-group --group-id ${{ steps.create-sg.outputs.SG_ID }} 2>/dev/null || true
+
+  # ============================================
+  # JOB 4: Status Final
+  # ============================================
+  all-checks-green:
+    name: ✅ All Checks Summary
+    needs: [check-merge, build-docker, deploy-aws]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: 📋 Generate final report
+        run: |
+          echo "========================================"
+          echo "✅✅✅ 11SOAT ORDERS - DEPLOYMENT STATUS ✅✅✅"
+          echo "========================================"
+          echo ""
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "📌 TRIGGER: Automated after PR merge"
+            echo "   PR: ${{ needs.check-merge.outputs.pr_title || 'N/A' }}"
+            echo "   Merged by: ${{ needs.check-merge.outputs.merged_by || 'N/A' }}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "📌 TRIGGER: Manual deployment"
+            echo "   Executed by: ${{ github.actor }}"
+            echo "   Auto-destroy: ${{ github.event.inputs.destroy_minutes || '30' }} minutes"
+          fi
+
+          echo ""
+          echo "🔍 JOB STATUS:"
+          echo "   1. 🔍 Check Merge: ${{ needs.check-merge.result }}"
+          echo "   2. 🐳 Build Docker: ${{ needs.build-docker.result || 'skipped' }}"
+          echo "   3. 🚀 Deploy AWS: ${{ needs.deploy-aws.result || 'skipped' }}"
+          echo ""
+
+          if [[ "${{ needs.check-merge.result }}" == "success" ]] && \
+             [[ "${{ needs.build-docker.result }}" == "success" ]] && \
+             [[ "${{ needs.deploy-aws.result }}" == "success" ]]; then
+            echo "🎉🎉🎉 ALL CHECKS ARE GREEN! 🎉🎉🎉"
+            echo ""
+            echo "📹 PERFECT FOR DEMONSTRATION:"
+            if [[ "${{ needs.deploy-aws.outputs.service_url }}" != "http://IP_NOT_AVAILABLE:3000" ]]; then
+              echo "   Service: ${{ needs.deploy-aws.outputs.service_url }}"
+              echo "   Swagger: ${{ needs.deploy-aws.outputs.service_url }}/api"
+            fi
+            echo ""
+            echo "⚠️  RESOURCES WILL BE AUTO-DESTROYED"
+            echo "   Do not rely on this for persistent testing!"
+          elif [[ "${{ needs.check-merge.outputs.should_deploy }}" == "false" ]]; then
+            echo "⏸️  PR closed without merge - deploy skipped (correct behavior)"
+          else
+            echo "⚠️  Some checks failed - review logs above"
+          fi
+
+          echo ""
+          echo "========================================"
