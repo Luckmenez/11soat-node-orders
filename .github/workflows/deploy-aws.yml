@@ -131,7 +131,17 @@ jobs:
           IMAGE_TAG: deploy-${{ github.run_id }}
         run: |
           echo "🔨 Building Docker image..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+          # Create temporary file with NPM token
+          echo "${{ secrets.NPM_TOKEN }}" > /tmp/npm_token
+
+          # Build with BuildKit secrets
+          DOCKER_BUILDKIT=1 docker build \
+            --secret id=npm_token,src=/tmp/npm_token \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+          # Remove temporary token file
+          rm -f /tmp/npm_token
 
           echo "📤 Pushing to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
