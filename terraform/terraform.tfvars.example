@@ -1,0 +1,32 @@
+# AWS Configuration
+aws_region = "us-east-1"
+project_name = "11soat-orders"
+environment = "prod"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b"]
+public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
+
+# RDS Configuration
+db_name = "orders_db"
+db_username = "postgres"  # Change in production
+db_password = "CHANGE_ME_IN_PRODUCTION"  # Use AWS Secrets Manager in production
+db_instance_class = "db.t3.micro"
+db_allocated_storage = 20
+
+# ECS Configuration
+container_port = 3000
+container_cpu = 256  # 0.25 vCPU
+container_memory = 512  # 512 MB
+desired_count = 2  # Number of tasks
+
+# ALB Configuration
+# certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxx"  # Uncomment and add your ACM certificate ARN for HTTPS
+
+# Application Environment Variables
+payment_gateway_url = "https://payment-service-url.com"
+npm_token = "YOUR_NPM_TOKEN_HERE"
+auth_gateway_url = "https://auth-service-url.com"
+products_gateway_url = "https://products-service-url.com"
