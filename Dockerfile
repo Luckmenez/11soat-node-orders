@@ -11,7 +11,16 @@ COPY src/infrastructure/persistence/prisma ./src/infrastructure/persistence/pris
 
 # Development dependencies stage
 FROM base AS deps
+
+# Configure npm authentication for private packages
+ARG NPM_TOKEN
+RUN echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" > .npmrc && \
+    echo "@vineco77:registry=https://npm.pkg.github.com/" >> .npmrc
+
 RUN npm ci
+
+# Remove .npmrc for security
+RUN rm -f .npmrc
 
 # Build stage
 FROM base AS build
