@@ -24,7 +24,8 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client
+# Generate Prisma Client (needs DATABASE_URL as placeholder)
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
 RUN npx prisma generate --schema=./src/infrastructure/persistence/prisma/schema.prisma
 
 # Build application
