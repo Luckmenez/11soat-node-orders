@@ -344,20 +344,20 @@ jobs:
           else
             echo "📝 Creating new role..."
 
-            cat > trust-policy.json << 'TRUSTEOF'
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ecs-tasks.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-TRUSTEOF
+            cat > trust-policy.json <<'TRUSTEOF'
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": "ecs-tasks.amazonaws.com"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            }
+            TRUSTEOF
 
             aws iam create-role \
               --role-name $ROLE_NAME \
@@ -461,7 +461,7 @@ TRUSTEOF
               {"key": "RunId", "value": "${{ github.run_id }}"}
             ]
           }
-EOF
+          EOF
 
           TASK_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://task-definition.json \
@@ -616,7 +616,7 @@ EOF
           DESTROY_SECONDS=$((DESTROY_MINUTES * 60))
           echo "⏰ Scheduling auto-destruction in $DESTROY_MINUTES minutes ($DESTROY_SECONDS seconds)..."
 
-          cat > /tmp/destroy-resources.sh << 'EOF'
+          cat > /tmp/destroy-resources.sh <<'EOF'
           #!/bin/bash
           echo "========================================"
           echo "🧹 AUTO-DESTRUCTION INITIATED"
@@ -679,7 +679,7 @@ EOF
           echo "✅✅✅ CLEANUP COMPLETE ✅✅✅"
           echo "All resources destroyed at: $(date)"
           echo "========================================"
-EOF
+          EOF
 
           chmod +x /tmp/destroy-resources.sh
 
