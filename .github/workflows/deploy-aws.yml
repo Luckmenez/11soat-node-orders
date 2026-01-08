@@ -190,6 +190,41 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: 🛡️ Create RDS Security Group
+        id: create-rds-sg
+        run: |
+          echo "🛡️ Creating RDS security group..."
+
+          # Get default VPC
+          VPC_ID=$(aws ec2 describe-vpcs \
+            --filters "Name=isDefault,Values=true" \
+            --query 'Vpcs[0].VpcId' \
+            --output text)
+
+          echo "Using VPC: $VPC_ID"
+
+          # Create security group for RDS
+          RDS_SG_ID=$(aws ec2 create-security-group \
+            --group-name "orders-rds-sg-${{ github.run_id }}" \
+            --description "11soat Orders RDS Security Group - Auto Destroy" \
+            --vpc-id $VPC_ID \
+            --tag-specifications 'ResourceType=security-group,Tags=[{Key=Project,Value=11soat},{Key=AutoDestroy,Value=true},{Key=RunId,Value=${{ github.run_id }}}]' \
+            --query 'GroupId' \
+            --output text)
+
+          echo "RDS_SG_ID=$RDS_SG_ID" >> $GITHUB_OUTPUT
+          echo "RDS_SG_ID=$RDS_SG_ID" >> $GITHUB_ENV
+
+          # Allow PostgreSQL port (5432) from anywhere (for demo purposes)
+          aws ec2 authorize-security-group-ingress \
+            --group-id $RDS_SG_ID \
+            --protocol tcp \
+            --port 5432 \
+            --cidr 0.0.0.0/0
+
+          echo "✅ RDS Security group created: $RDS_SG_ID"
+          echo "Port 5432 (PostgreSQL) opened to public"
+
       - name: 🗄️ Create PostgreSQL Database
         id: create-db
         run: |
@@ -211,6 +246,7 @@ jobs:
             --db-name orders_db \
             --backup-retention-period 0 \
             --publicly-accessible \
+            --vpc-security-group-ids ${{ steps.create-rds-sg.outputs.RDS_SG_ID }} \
             --no-multi-az \
             --no-auto-minor-version-upgrade \
             --tags Key=Project,Value=11soat Key=AutoDestroy,Value=true Key=RunId,Value=${{ github.run_id }}
@@ -593,6 +629,7 @@ jobs:
           export AWS_SECRET_ACCESS_KEY="$3"
           export AWS_REGION="$4"
           WAIT_TIME="$11"
+          RDS_SG_ID="$12"
 
           echo "⏳ Waiting $WAIT_TIME seconds before cleanup..."
           sleep $WAIT_TIME
@@ -621,11 +658,13 @@ jobs:
             --skip-final-snapshot \
             --delete-automated-backups 2>/dev/null || true
 
-          # 5. Deletar security group (aguardar um pouco para ENIs liberarem)
+          # 5. Deletar security groups (aguardar um pouco para ENIs liberarem)
           echo "Step 5: Waiting for network interfaces to detach..."
           sleep 60
-          echo "Deleting security group..."
+          echo "Deleting ECS security group..."
           aws ec2 delete-security-group --group-id "$8" 2>/dev/null || true
+          echo "Deleting RDS security group..."
+          aws ec2 delete-security-group --group-id "$RDS_SG_ID" 2>/dev/null || true
 
           # 6. Deletar IAM role
           echo "Step 6: Deleting IAM role..."
@@ -656,6 +695,7 @@ jobs:
             "ecsTaskExecutionRole-${{ github.run_id }}" \
             "orders-task-${{ github.run_id }}" \
             "$DESTROY_SECONDS" \
+            "${{ steps.create-rds-sg.outputs.RDS_SG_ID }}" \
             > /tmp/destroy-log-${{ github.run_id }}.txt 2>&1 &
 
           echo "✅ Auto-destruction scheduled successfully"
@@ -731,7 +771,9 @@ jobs:
           aws ecs delete-service --cluster ${{ env.ECS_CLUSTER }}-${{ github.run_id }} --service ${{ env.ECS_SERVICE }} --force 2>/dev/null || true
           aws ecs delete-cluster --cluster ${{ env.ECS_CLUSTER }}-${{ github.run_id }} 2>/dev/null || true
           aws rds delete-db-instance --db-instance-identifier ${{ env.RDS_INSTANCE }} --skip-final-snapshot 2>/dev/null || true
+          sleep 30
           aws ec2 delete-security-group --group-id ${{ steps.create-sg.outputs.SG_ID }} 2>/dev/null || true
+          aws ec2 delete-security-group --group-id ${{ steps.create-rds-sg.outputs.RDS_SG_ID }} 2>/dev/null || true
 
   # ============================================
   # JOB 4: Status Final
