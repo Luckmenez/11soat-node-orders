@@ -204,7 +204,7 @@ jobs:
             --db-instance-identifier ${{ env.RDS_INSTANCE }} \
             --db-instance-class db.t3.micro \
             --engine postgres \
-            --engine-version 15.4 \
+            --engine-version 15 \
             --allocated-storage 20 \
             --master-username postgres \
             --master-user-password "$DB_PASSWORD" \
