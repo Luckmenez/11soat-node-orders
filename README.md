@@ -1,10 +1,13 @@
 # 🍔 Orders Service - Microserviço de Pedidos
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Luckmenez_11soat-node-orders&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Luckmenez_11soat-node-orders)
+[![Code Coverage](https://img.shields.io/badge/coverage-97.16%25-brightgreen)](https://sonarcloud.io/summary/new_code?id=Luckmenez_11soat-node-orders)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Luckmenez_11soat-node-orders&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Luckmenez_11soat-node-orders)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=Luckmenez_11soat-node-orders&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Luckmenez_11soat-node-orders)
 [![NestJS](https://img.shields.io/badge/NestJS-10.0-red.svg)](https://nestjs.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.0-2D3748.svg)](https://www.prisma.io/)
+
+
+*Collections para testes*: [Collection payment](https://drive.google.com/file/d/12WmL1zfXAoUVktYUGq4pYm_CDR5q-NO4/view?usp=sharing)
 
 ## 📋 Descrição
 
