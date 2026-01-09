@@ -1,0 +1,85 @@
+name: SonarCloud Analysis - Main Branch
+
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔐 Configure npm authentication
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+          echo "@vineco77:registry=https://npm.pkg.github.com/" >> .npmrc
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔧 Generate Prisma Client
+        run: npx prisma generate --schema=./src/infrastructure/persistence/prisma/schema.prisma
+        env:
+          DATABASE_URL: 'postgresql://user:password@localhost:5432/testdb'
+
+      - name: 🧪 Run tests with coverage
+        run: |
+          npm run test:unit:cov -- \
+            --coverageReporters=lcov \
+            --coverageReporters=text
+        env:
+          DATABASE_URL: 'postgresql://user:password@localhost:5432/testdb'
+
+      - name: 🔍 Verify lcov.info exists
+        run: |
+          echo "Checking if lcov.info exists..."
+          if [ -f "coverage/lcov.info" ]; then
+            echo "✅ lcov.info found"
+            echo "File size: $(du -h coverage/lcov.info)"
+            echo "Line count: $(wc -l < coverage/lcov.info)"
+            echo ""
+            echo "First 20 lines of lcov.info:"
+            head -20 coverage/lcov.info
+            echo ""
+            echo "Checking sonar-project.properties:"
+            cat sonar-project.properties | grep -A5 "Coverage"
+          else
+            echo "❌ ERROR: lcov.info not found!"
+            echo "Contents of coverage directory:"
+            ls -la coverage/ || echo "No coverage directory"
+            exit 1
+          fi
+
+      - name: 📡 SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_SCANNER_OPTS: "-Dsonar.verbose=true"
+
+      - name: 📊 Display SonarCloud Results
+        if: always()
+        run: |
+          echo "================================================"
+          echo "SonarCloud Analysis Complete"
+          echo "================================================"
+          echo ""
+          echo "View detailed results at:"
+          echo "https://sonarcloud.io/summary/overall?id=Luckmenez_11soat-node-orders"
+          echo ""
+          echo "Coverage report was sent from: coverage/lcov.info"
