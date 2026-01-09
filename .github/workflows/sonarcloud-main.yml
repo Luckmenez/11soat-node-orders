@@ -55,6 +55,9 @@ jobs:
             echo ""
             echo "First 20 lines of lcov.info:"
             head -20 coverage/lcov.info
+            echo ""
+            echo "Checking sonar-project.properties:"
+            cat sonar-project.properties | grep -A5 "Coverage"
           else
             echo "❌ ERROR: lcov.info not found!"
             echo "Contents of coverage directory:"
@@ -67,19 +70,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=Luckmenez_11soat-node-orders
-            -Dsonar.organization=luckmenez
-            -Dsonar.sources=src
-            -Dsonar.tests=test
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.test.ts,**/*.e2e-spec.ts,**/*.steps.ts,**/test/**,**/__tests__/**,**/*.module.ts,**/*.dto.ts,**/*.interface.ts,**/*.enum.ts,**/main.ts,**/prisma/**
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/*.module.ts,**/*.dto.ts,**/*.interface.ts,**/*.enum.ts,**/main.ts
-            -Dsonar.test.inclusions=**/*.spec.ts,**/*.test.ts,**/*.e2e-spec.ts
-            -Dsonar.qualitygate.wait=false
-            -Dsonar.verbose=true
+          SONAR_SCANNER_OPTS: "-Dsonar.verbose=true"
 
       - name: 📊 Display SonarCloud Results
         if: always()
