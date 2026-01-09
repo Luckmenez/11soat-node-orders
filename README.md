@@ -1,5 +1,5 @@
 # 🍔 Orders Service - Microserviço de Pedidos
-
+[![Coverage](https://img.shields.io/badge/coverage-99.61%25-brightgreen.svg)](./coverage/lcov-report/index.html)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Luckmenez_11soat-node-orders&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Luckmenez_11soat-node-orders)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=Luckmenez_11soat-node-orders&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Luckmenez_11soat-node-orders)
 [![NestJS](https://img.shields.io/badge/NestJS-10.0-red.svg)](https://nestjs.com/)
