@@ -43,3 +43,9 @@ export const createMockAuthGatewayWithNoCpf = () => {
     }),
   };
 };
+
+export const createMockAuthGatewayWithNullPayload = () => {
+  return {
+    decodeToken: jest.fn().mockResolvedValue(null),
+  };
+};
