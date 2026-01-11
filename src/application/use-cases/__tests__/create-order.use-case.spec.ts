@@ -272,7 +272,9 @@ describe('CreateOrderUseCase', () => {
 
       expect(mockPaymentGateway.createPayment).toHaveBeenCalledWith(
         expect.objectContaining({
-          callbackUrl: expect.stringMatching(/\/orders\/update-order-payment\/\d+/),
+          callbackUrl: expect.stringMatching(
+            /\/orders\/update-order-payment\/\d+/,
+          ),
         }),
       );
     });
