@@ -445,10 +445,6 @@ jobs:
           fi
 
       - name: 🔍 Run SonarCloud Scan
-        permissions:
-          contents: read
-          pull-requests: write
-          checks: write
         continue-on-error: true
         uses: SonarSource/sonarcloud-github-action@master
         env:
