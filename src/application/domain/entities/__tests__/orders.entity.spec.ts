@@ -13,7 +13,7 @@ describe('OrderEntity', () => {
       expect(order).toBeInstanceOf(OrderEntity);
       expect(order.clientCpf).toBe('12345678900');
       expect(order.status).toBe(OrderStatus.PENDING);
-      expect(order.amount).toBe(100.50);
+      expect(order.amount).toBe(100.5);
       expect(order.items).toHaveLength(1);
       expect(order.items[0].productId).toBe(1);
     });
@@ -37,7 +37,8 @@ describe('OrderEntity', () => {
     });
 
     it('should throw error when amount is negative', () => {
-      const orderData = OrderFactory.createOrderWithInvalidData('negativeAmount');
+      const orderData =
+        OrderFactory.createOrderWithInvalidData('negativeAmount');
 
       expect(() => OrderEntity.create(orderData)).toThrow(AppError);
       expect(() => OrderEntity.create(orderData)).toThrow(
@@ -55,7 +56,8 @@ describe('OrderEntity', () => {
     });
 
     it('should throw error when item quantity is negative', () => {
-      const orderData = OrderFactory.createOrderWithInvalidData('negativeQuantity');
+      const orderData =
+        OrderFactory.createOrderWithInvalidData('negativeQuantity');
 
       expect(() => OrderEntity.create(orderData)).toThrow(AppError);
       expect(() => OrderEntity.create(orderData)).toThrow(
@@ -92,8 +94,8 @@ describe('OrderEntity', () => {
                 description: 'Additional cheese',
                 photo: null,
                 quantity: 0, // Invalid
-                price: 5.00,
-                unitPrice: 5.00,
+                price: 5.0,
+                unitPrice: 5.0,
                 observation: null,
                 type: 'EXTRA',
               },
@@ -120,7 +122,7 @@ describe('OrderEntity', () => {
                 photo: null,
                 quantity: 1,
                 price: NaN, // Invalid
-                unitPrice: 5.00,
+                unitPrice: 5.0,
                 observation: null,
                 type: 'EXTRA',
               },
@@ -168,7 +170,9 @@ describe('OrderEntity', () => {
       });
 
       expect(() => OrderEntity.create(orderData)).toThrow(AppError);
-      expect(() => OrderEntity.create(orderData)).toThrow('Invalid order status');
+      expect(() => OrderEntity.create(orderData)).toThrow(
+        'Invalid order status',
+      );
     });
 
     it('should convert clientId from string to number', () => {
@@ -257,7 +261,7 @@ describe('OrderEntity', () => {
       expect(productDto).toHaveProperty('observation');
       expect(productDto).toHaveProperty('transactionId');
       expect(productDto.clientId).toBe(order.clientId);
-      expect(productDto.amount).toBe(100.50);
+      expect(productDto.amount).toBe(100.5);
       expect(productDto.items).toHaveLength(1);
     });
 
@@ -330,6 +334,53 @@ describe('OrderEntity', () => {
       expect(productDto.isRandomClient).toBe(true);
       expect(productDto.observation).toBe('Custom observation');
       expect(productDto.transactionId).toBe('TXN-123');
+    });
+  });
+
+  describe('addTransactionId', () => {
+    it('should add transaction id to an existing order', () => {
+      const orderData = OrderFactory.createValidOrderData({
+        transactionId: null,
+      });
+      const order = OrderEntity.create(orderData);
+
+      const updatedOrder = OrderEntity.addTransactionId(order, 'TXN-12345');
+
+      expect(updatedOrder.transactionId).toBe('TXN-12345');
+      expect(updatedOrder).toBeInstanceOf(OrderEntity);
+    });
+
+    it('should preserve all other order properties when adding transaction id', () => {
+      const orderData = OrderFactory.createValidOrderData({
+        observation: 'Test observation',
+        codeClientRandom: 99999,
+        isRandomClient: true,
+      });
+      const order = OrderEntity.create(orderData);
+
+      const updatedOrder = OrderEntity.addTransactionId(order, 'TXN-67890');
+
+      expect(updatedOrder.id).toBe(order.id);
+      expect(updatedOrder.clientId).toBe(order.clientId);
+      expect(updatedOrder.clientCpf).toBe(order.clientCpf);
+      expect(updatedOrder.status).toBe(order.status);
+      expect(updatedOrder.amount).toBe(order.amount);
+      expect(updatedOrder.items).toEqual(order.items);
+      expect(updatedOrder.isRandomClient).toBe(order.isRandomClient);
+      expect(updatedOrder.codeClientRandom).toBe(order.codeClientRandom);
+      expect(updatedOrder.observation).toBe(order.observation);
+      expect(updatedOrder.payment).toBe(order.payment);
+    });
+
+    it('should replace existing transaction id', () => {
+      const orderData = OrderFactory.createValidOrderData({
+        transactionId: 'OLD-TXN-123',
+      });
+      const order = OrderEntity.create(orderData);
+
+      const updatedOrder = OrderEntity.addTransactionId(order, 'NEW-TXN-456');
+
+      expect(updatedOrder.transactionId).toBe('NEW-TXN-456');
     });
   });
 });

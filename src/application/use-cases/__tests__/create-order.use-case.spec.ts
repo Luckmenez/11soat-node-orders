@@ -6,6 +6,7 @@ import {
   createMockAuthGatewayWithError,
   createMockAuthGatewayWithNoCpf,
   createMockAuthGatewayWithNullPayload,
+  createMockAuthGatewayWithNoSub,
 } from '../../../../test/utils/mocks/auth-gateway.mock';
 import {
   createMockPaymentGateway,
@@ -357,6 +358,49 @@ describe('CreateOrderUseCase', () => {
       );
       expect(mockOrderRepository.save).not.toHaveBeenCalled();
       expect(mockPaymentGateway.createPayment).not.toHaveBeenCalled();
+    });
+
+    it('should set isRandomClient to false when token has no sub', async () => {
+      mockAuthGateway = createMockAuthGatewayWithNoSub();
+      useCase = new CreateOrderUseCase(
+        mockConfigService,
+        mockAuthGateway,
+        mockOrderRepository,
+        mockPaymentGateway,
+      );
+
+      const orderData = OrderFactory.createValidOrderData();
+      const token = 'valid-token';
+
+      await useCase.execute(orderData, token);
+
+      expect(mockOrderRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isRandomClient: false,
+          clientId: null,
+        }),
+      );
+    });
+
+    it('should set clientId to null when token sub is null', async () => {
+      mockAuthGateway = createMockAuthGatewayWithNoSub();
+      useCase = new CreateOrderUseCase(
+        mockConfigService,
+        mockAuthGateway,
+        mockOrderRepository,
+        mockPaymentGateway,
+      );
+
+      const orderData = OrderFactory.createValidOrderData();
+      const token = 'valid-token';
+
+      await useCase.execute(orderData, token);
+
+      expect(mockOrderRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientId: null,
+        }),
+      );
     });
   });
 });

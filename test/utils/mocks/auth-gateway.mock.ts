@@ -49,3 +49,14 @@ export const createMockAuthGatewayWithNullPayload = () => {
     decodeToken: jest.fn().mockResolvedValue(null),
   };
 };
+
+export const createMockAuthGatewayWithNoSub = () => {
+  return {
+    decodeToken: jest.fn().mockResolvedValue({
+      sub: null,
+      cpf: '12345678900',
+      user_type: 'cliente',
+      name: 'Test User',
+    }),
+  };
+};
