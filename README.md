@@ -7,7 +7,7 @@
 [![Prisma](https://img.shields.io/badge/Prisma-6.0-2D3748.svg)](https://www.prisma.io/)
 
 
-*Collections para testes*: [Collection payment]([https://drive.google.com/file/d/12WmL1zfXAoUVktYUGq4pYm_CDR5q-NO4/view?usp=sharing](https://drive.google.com/file/d/1RL_J-YeaSC5ci32U3C8mxzTXFOc6_54R/view?usp=sharing))
+*Collections para testes*: [Collection Auth](https://drive.google.com/file/d/12WmL1zfXAoUVktYUGq4pYm_CDR5q-NO4/view)
 
 ## 📋 Descrição
 
