@@ -5,6 +5,8 @@ import {
   createMockAuthGateway,
   createMockAuthGatewayWithError,
   createMockAuthGatewayWithNoCpf,
+  createMockAuthGatewayWithNullPayload,
+  createMockAuthGatewayWithNoSub,
 } from '../../../../test/utils/mocks/auth-gateway.mock';
 import {
   createMockPaymentGateway,
@@ -271,7 +273,9 @@ describe('CreateOrderUseCase', () => {
 
       expect(mockPaymentGateway.createPayment).toHaveBeenCalledWith(
         expect.objectContaining({
-          callbackUrl: expect.stringMatching(/\/orders\/update-order-payment\/\d+/),
+          callbackUrl: expect.stringMatching(
+            /\/orders\/update-order-payment\/\d+/,
+          ),
         }),
       );
     });
@@ -302,6 +306,99 @@ describe('CreateOrderUseCase', () => {
       expect(mockOrderRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           codeClientRandom: 12345,
+        }),
+      );
+    });
+
+    it('should throw unauthorized error when token is empty', async () => {
+      const orderData = OrderFactory.createValidOrderData();
+      const emptyToken = '';
+
+      await expect(useCase.execute(orderData, emptyToken)).rejects.toThrow(
+        'Authorization token is required',
+      );
+      expect(mockOrderRepository.save).not.toHaveBeenCalled();
+      expect(mockPaymentGateway.createPayment).not.toHaveBeenCalled();
+    });
+
+    it('should throw unauthorized error when token is null', async () => {
+      const orderData = OrderFactory.createValidOrderData();
+      const nullToken = null as unknown as string;
+
+      await expect(useCase.execute(orderData, nullToken)).rejects.toThrow(
+        'Authorization token is required',
+      );
+      expect(mockOrderRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw unauthorized error when token is undefined', async () => {
+      const orderData = OrderFactory.createValidOrderData();
+      const undefinedToken = undefined as unknown as string;
+
+      await expect(useCase.execute(orderData, undefinedToken)).rejects.toThrow(
+        'Authorization token is required',
+      );
+      expect(mockOrderRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw unauthorized error when token payload is null', async () => {
+      mockAuthGateway = createMockAuthGatewayWithNullPayload();
+      useCase = new CreateOrderUseCase(
+        mockConfigService,
+        mockAuthGateway,
+        mockOrderRepository,
+        mockPaymentGateway,
+      );
+
+      const orderData = OrderFactory.createValidOrderData();
+      const token = 'valid-but-returns-null';
+
+      await expect(useCase.execute(orderData, token)).rejects.toThrow(
+        'Invalid or expired token',
+      );
+      expect(mockOrderRepository.save).not.toHaveBeenCalled();
+      expect(mockPaymentGateway.createPayment).not.toHaveBeenCalled();
+    });
+
+    it('should set isRandomClient to false when token has no sub', async () => {
+      mockAuthGateway = createMockAuthGatewayWithNoSub();
+      useCase = new CreateOrderUseCase(
+        mockConfigService,
+        mockAuthGateway,
+        mockOrderRepository,
+        mockPaymentGateway,
+      );
+
+      const orderData = OrderFactory.createValidOrderData();
+      const token = 'valid-token';
+
+      await useCase.execute(orderData, token);
+
+      expect(mockOrderRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isRandomClient: false,
+          clientId: null,
+        }),
+      );
+    });
+
+    it('should set clientId to null when token sub is null', async () => {
+      mockAuthGateway = createMockAuthGatewayWithNoSub();
+      useCase = new CreateOrderUseCase(
+        mockConfigService,
+        mockAuthGateway,
+        mockOrderRepository,
+        mockPaymentGateway,
+      );
+
+      const orderData = OrderFactory.createValidOrderData();
+      const token = 'valid-token';
+
+      await useCase.execute(orderData, token);
+
+      expect(mockOrderRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientId: null,
         }),
       );
     });

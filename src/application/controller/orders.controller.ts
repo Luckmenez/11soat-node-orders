@@ -24,6 +24,7 @@ import {
   ApiUpdateOrderPayment,
   ApiDeleteOrder,
 } from '../swagger/orders';
+import { AppError } from '../domain/errors/app.error';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -63,9 +64,16 @@ export class OrdersController {
     @Param('orderId') orderId: string,
     @Body() updateOrderPaymentBody: Omit<UpdateOrderPaymentDto, 'orderId'>,
   ) {
+    const parsedOrderId = Number(orderId);
+    if (isNaN(parsedOrderId)) {
+      throw AppError.badRequest({
+        message: 'Invalid order ID format. Must be a number.',
+        details: { orderId },
+      });
+    }
     return this.updateOrderPaymentUseCase.execute({
       ...updateOrderPaymentBody,
-      orderId: Number(orderId),
+      orderId: parsedOrderId,
     });
   }
 

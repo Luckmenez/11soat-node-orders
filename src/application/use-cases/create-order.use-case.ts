@@ -8,6 +8,7 @@ import { OrderStatus } from 'src/application/value-objects/order-status.enum';
 import { PaymentGatewayPort } from '../ports/output/payment.gateway.port';
 import { PaymentDtoResponse } from '../domain/dto/payment-create.gateway.interface';
 import { ConfigService } from '@nestjs/config';
+import { AppError } from '../domain/errors/app.error';
 
 @Injectable()
 export class CreateOrderUseCase implements CreateOrderUseCasePort {
@@ -26,7 +27,15 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
     orderData: CreateOrderDto,
     token: string,
   ): Promise<PaymentDtoResponse> {
+    if (!token) {
+      throw AppError.unauthorized({ message: 'Authorization token is required' });
+    }
+
     const tokenPayload = await this.authGateway.decodeToken(token);
+
+    if (!tokenPayload) {
+      throw AppError.unauthorized({ message: 'Invalid or expired token' });
+    }
 
     const orderEntity = OrderEntity.create({
       id: null,
