@@ -64,15 +64,15 @@ describe('AppError', () => {
 
     it('should preserve message', () => {
       const error = AppError.notFound({
-        message: 'Order not found',
+        message: 'Order not found.',
       });
 
-      expect(error.message).toBe('Order not found');
+      expect(error.message).toBe('Order not found.');
     });
 
     it('should preserve details', () => {
       const error = AppError.notFound({
-        message: 'Order not found',
+        message: 'Order not found.',
         details: { orderId: 123 },
       });
 
@@ -106,7 +106,10 @@ describe('AppError', () => {
       });
 
       expect(error.message).toBe('Validation failed');
-      expect(error.details).toEqual({ field: 'email', error: 'invalid format' });
+      expect(error.details).toEqual({
+        field: 'email',
+        error: 'invalid format',
+      });
     });
   });
 

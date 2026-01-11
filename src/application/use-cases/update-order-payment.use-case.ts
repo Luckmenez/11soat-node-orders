@@ -22,7 +22,7 @@ export class UpdateOrderPaymentUseCase implements UpdateOrderPaymentPort {
 
     if (!response) {
       throw AppError.notFound({
-        message: 'Order not found',
+        message: 'Order not found.',
         details: { orderId: orderId },
       });
     }

@@ -86,7 +86,7 @@ describe('Orders E2E Tests', () => {
     it('should create order successfully with valid data', async () => {
       const orderData = {
         clientCpf: '12345678900',
-        amount: 100.50,
+        amount: 100.5,
         observation: 'No onions',
         items: [
           {
@@ -120,7 +120,7 @@ describe('Orders E2E Tests', () => {
     it('should create order with customer customizations', async () => {
       const orderData = {
         clientCpf: '98765432100',
-        amount: 55.50,
+        amount: 55.5,
         items: [
           {
             productId: 1,
@@ -128,8 +128,8 @@ describe('Orders E2E Tests', () => {
             description: 'Pepperoni',
             photo: 'pizza.jpg',
             quantity: 1,
-            price: 50.00,
-            unitPrice: 50.00,
+            price: 50.0,
+            unitPrice: 50.0,
             type: 'MAIN',
             customerItems: [
               {
@@ -137,8 +137,8 @@ describe('Orders E2E Tests', () => {
                 title: 'Extra Cheese',
                 description: 'More cheese',
                 quantity: 1,
-                price: 5.50,
-                unitPrice: 5.50,
+                price: 5.5,
+                unitPrice: 5.5,
                 type: 'EXTRA',
               },
             ],
@@ -171,15 +171,15 @@ describe('Orders E2E Tests', () => {
       const orderData = {
         isRandomClient: true,
         codeClientRandom: 12345,
-        amount: 75.00,
+        amount: 75.0,
         items: [
           {
             productId: 2,
             title: 'Soda',
             description: 'Coca-Cola',
             quantity: 3,
-            price: 25.00,
-            unitPrice: 25.00,
+            price: 25.0,
+            unitPrice: 25.0,
             type: 'DRINK',
           },
         ],
@@ -202,13 +202,13 @@ describe('Orders E2E Tests', () => {
     it('should return 401 without authorization header', async () => {
       const orderData = {
         clientCpf: '12345678900',
-        amount: 100.00,
+        amount: 100.0,
         items: [
           {
             productId: 1,
             title: 'Burger',
             quantity: 1,
-            price: 100.00,
+            price: 100.0,
           },
         ],
       };
@@ -236,13 +236,13 @@ describe('Orders E2E Tests', () => {
     it('should return 400 for invalid item quantity', async () => {
       const orderData = {
         clientCpf: '12345678900',
-        amount: 50.00,
+        amount: 50.0,
         items: [
           {
             productId: 1,
             title: 'Burger',
             quantity: -1, // Invalid
-            price: 50.00,
+            price: 50.0,
           },
         ],
       };
@@ -354,7 +354,7 @@ describe('Orders E2E Tests', () => {
         data: {
           clientCpf: '11122233344',
           status: OrderStatus.PENDING,
-          amount: 100.00,
+          amount: 100.0,
           isRandomClient: false,
           items: {
             create: [
@@ -364,8 +364,8 @@ describe('Orders E2E Tests', () => {
                 description: 'Test',
                 photo: 'test.jpg',
                 quantity: 1,
-                price: 100.00,
-                unitPrice: 100.00,
+                price: 100.0,
+                unitPrice: 100.0,
                 type: 'MAIN',
                 customerItems: { create: [] },
               },
@@ -425,7 +425,7 @@ describe('Orders E2E Tests', () => {
           data: {
             clientCpf: '99988877766',
             status: OrderStatus.PENDING,
-            amount: 50.00,
+            amount: 50.0,
             isRandomClient: false,
             items: { create: [] },
           },
@@ -468,7 +468,7 @@ describe('Orders E2E Tests', () => {
         .set('Authorization', validToken)
         .send({
           clientCpf: '55566677788',
-          amount: 125.50,
+          amount: 125.5,
           observation: 'E2E test order',
           items: [
             {
@@ -477,8 +477,8 @@ describe('Orders E2E Tests', () => {
               description: 'Burger + Fries + Soda',
               photo: 'combo.jpg',
               quantity: 1,
-              price: 100.00,
-              unitPrice: 100.00,
+              price: 100.0,
+              unitPrice: 100.0,
               type: 'MAIN',
               customerItems: [
                 {
@@ -486,8 +486,8 @@ describe('Orders E2E Tests', () => {
                   title: 'Extra Bacon',
                   description: 'Double bacon',
                   quantity: 1,
-                  price: 25.50,
-                  unitPrice: 25.50,
+                  price: 25.5,
+                  unitPrice: 25.5,
                   type: 'EXTRA',
                 },
               ],
@@ -523,7 +523,7 @@ describe('Orders E2E Tests', () => {
 
       // 4. Verify status updated in list
       const listAfterPaid = await request(app.getHttpServer())
-        .get('/orders/get-paginated/1/10')
+        .get('/orders/get-paginated?page=1&limit=10')
         .expect(200);
 
       const paidOrder = listAfterPaid.body.data.find(
@@ -584,6 +584,8 @@ describe('Orders E2E Tests', () => {
                   title: `Product ${i}`,
                   quantity: 1,
                   price: 50 + i,
+                  unitPrice: 50 + i,
+                  type: 'MAIN',
                 },
               ],
             }),

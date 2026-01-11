@@ -49,7 +49,7 @@ jobs:
       - name: 🔧 Generate Prisma Client
         run: npx prisma generate --schema=./src/infrastructure/persistence/prisma/schema.prisma
         env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
+          DATABASE_URL: 'postgresql://user:password@localhost:5432/testdb'
 
       - name: 🏗️ Build application
         run: npm run build
@@ -120,7 +120,7 @@ jobs:
       - name: 🔧 Generate Prisma Client
         run: npx prisma generate --schema=./src/infrastructure/persistence/prisma/schema.prisma
         env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
+          DATABASE_URL: 'postgresql://user:password@localhost:5432/testdb'
 
       - name: 📊 Generate detailed coverage report
         run: |
@@ -130,7 +130,7 @@ jobs:
             --coverageReporters=text \
             --coverageReporters=html
         env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
+          DATABASE_URL: 'postgresql://user:password@localhost:5432/testdb'
 
       - name: 🔍 Validate 80% Coverage PER FILE
         id: check-coverage
@@ -445,6 +445,10 @@ jobs:
           fi
 
       - name: 🔍 Run SonarCloud Scan
+        permissions:
+          contents: read
+          pull-requests: write
+          checks: write
         continue-on-error: true
         uses: SonarSource/sonarcloud-github-action@master
         env:
