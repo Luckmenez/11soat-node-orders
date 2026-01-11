@@ -1,6 +1,7 @@
 import { OrdersController } from '../orders.controller';
 import { OrderStatus } from '../../value-objects/order-status.enum';
 import { OrderFactory } from '../../../../test/utils/factories/order.factory';
+import { AppError } from '../../domain/errors/app.error';
 
 describe('OrdersController', () => {
   let controller: OrdersController;
@@ -191,6 +192,61 @@ describe('OrdersController', () => {
         orderId: 1,
         ...body,
       });
+    });
+
+    it('should throw BadRequest error for invalid orderId format', () => {
+      const invalidOrderId = 'abc';
+      const body = {
+        status: OrderStatus.PAID,
+        transactionId: 'TXN-123',
+      };
+
+      expect(() => controller.updateOrderPayment(invalidOrderId, body)).toThrow(
+        AppError,
+      );
+    });
+
+    it('should throw error with correct message for non-numeric orderId', () => {
+      const invalidOrderId = 'not-a-number';
+      const body = {
+        status: OrderStatus.PAID,
+        transactionId: 'TXN-456',
+      };
+
+      try {
+        controller.updateOrderPayment(invalidOrderId, body);
+        fail('Expected error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(AppError);
+        expect(error.message).toContain('Invalid order ID format');
+      }
+    });
+
+    it('should handle numeric string with leading zeros', async () => {
+      const orderIdWithZeros = '007';
+      const body = {
+        status: OrderStatus.PAID,
+        transactionId: 'TXN-789',
+      };
+
+      await controller.updateOrderPayment(orderIdWithZeros, body);
+
+      expect(mockUpdateOrderPaymentUseCase.execute).toHaveBeenCalledWith({
+        orderId: 7,
+        ...body,
+      });
+    });
+
+    it('should throw error for orderId with special characters', () => {
+      const invalidOrderId = '12#34';
+      const body = {
+        status: OrderStatus.PAID,
+        transactionId: 'TXN-789',
+      };
+
+      expect(() =>
+        controller.updateOrderPayment(invalidOrderId, body),
+      ).toThrow();
     });
   });
 

@@ -2,7 +2,7 @@ import { PaymentGatewayService } from '../payment.gateway.service';
 import { CreatePaymentGatewayRequest } from 'src/application/domain/dto/payment-create.gateway.interface';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 describe('PaymentGatewayService', () => {
   let service: PaymentGatewayService;
@@ -235,6 +235,122 @@ describe('PaymentGatewayService', () => {
       const result = await service.createPayment(paymentData);
 
       expect(result.id).toBe(888);
+    });
+
+    it('should throw error when payment gateway fails with response data', async () => {
+      const errorWithResponse = {
+        response: {
+          data: { message: 'Payment service unavailable' },
+        },
+        message: 'Request failed',
+      };
+
+      mockHttpService.post = jest
+        .fn()
+        .mockReturnValue(throwError(() => errorWithResponse));
+
+      const paymentData: CreatePaymentGatewayRequest = {
+        orderId: 999,
+        amount: 100.0,
+        items: [],
+      };
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await expect(service.createPayment(paymentData)).rejects.toEqual(
+        errorWithResponse,
+      );
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error creating payment in gateway:',
+        { message: 'Payment service unavailable' },
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should throw error when payment gateway fails without response data', async () => {
+      const errorWithoutResponse = {
+        message: 'Network error',
+      };
+
+      mockHttpService.post = jest
+        .fn()
+        .mockReturnValue(throwError(() => errorWithoutResponse));
+
+      const paymentData: CreatePaymentGatewayRequest = {
+        orderId: 1000,
+        amount: 50.0,
+        items: [],
+      };
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await expect(service.createPayment(paymentData)).rejects.toEqual(
+        errorWithoutResponse,
+      );
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error creating payment in gateway:',
+        'Network error',
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should log error with response data when available', async () => {
+      const errorWithData = {
+        response: {
+          data: { error: 'Invalid amount', code: 'INVALID_AMOUNT' },
+        },
+        message: 'Validation error',
+      };
+
+      mockHttpService.post = jest
+        .fn()
+        .mockReturnValue(throwError(() => errorWithData));
+
+      const paymentData: CreatePaymentGatewayRequest = {
+        orderId: 1001,
+        amount: -10.0,
+        items: [],
+      };
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await expect(service.createPayment(paymentData)).rejects.toBeDefined();
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error creating payment in gateway:',
+        { error: 'Invalid amount', code: 'INVALID_AMOUNT' },
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('cancelPayment', () => {
+    it('should cancel payment successfully', async () => {
+      const transactionId = 'txn_12345';
+
+      await expect(
+        service.cancelPayment({ transactionId }),
+      ).resolves.toBeUndefined();
+
+      expect(mockHttpService.delete).toHaveBeenCalledWith(
+        'http://payment-service:3000/payment/cancel/txn_12345',
+      );
+    });
+
+    it('should call delete endpoint with correct transaction ID', async () => {
+      const transactionId = 'txn_67890';
+
+      await service.cancelPayment({ transactionId });
+
+      expect(mockHttpService.delete).toHaveBeenCalledTimes(1);
+      expect(mockHttpService.delete).toHaveBeenCalledWith(
+        expect.stringContaining(transactionId),
+      );
     });
   });
 });
