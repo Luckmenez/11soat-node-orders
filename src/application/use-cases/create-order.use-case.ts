@@ -28,7 +28,10 @@ export class CreateOrderUseCase implements CreateOrderUseCasePort {
     token: string,
   ): Promise<PaymentDtoResponse> {
     if (!token) {
-      throw AppError.unauthorized({ message: 'Authorization token is required' });
+      console.log('No authorization token provided');
+      throw AppError.unauthorized({
+        message: 'Authorization token is required',
+      });
     }
 
     const tokenPayload = await this.authGateway.decodeToken(token);
