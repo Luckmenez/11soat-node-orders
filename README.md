@@ -709,3 +709,6 @@ Este projeto foi desenvolvido como parte do trabalho acadêmico da FIAP - 11SOAT
 ---
 
 **Desenvolvido com dedicação pela equipe 11SOAT**
+
+
+<!-- Security scan triggered at 2026-08-31 18:23:29 -->
